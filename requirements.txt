@@ -1,0 +1,10 @@
+googledrivedownloader=0.4
+loguru==0.6.0
+numpy==1.18.5
+pandas==0.24.2
+scikit_learn==0.22.2
+scipy==1.4.1
+torch==1.6.0
+tensorflow==1.15.0
+jupyter==1.0.0
+tqdm==4.61.0
