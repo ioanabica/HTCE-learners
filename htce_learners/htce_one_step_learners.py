@@ -74,7 +74,7 @@ class BaseHTCE_Learner(nn.Module):
         self.patience = patience
         self.clipping_value = clipping_value
 
-    def train(
+    def train(  # pylint: disable=arguments-differ
         self,
         X_source_specific,
         X_source_shared,
@@ -122,10 +122,10 @@ class BaseHTCE_Learner(nn.Module):
         train_indices_source = np.arange(n_source)
 
         params = []
-        for module in self.model_modules:
+        for module in self.model_modules:  # type: ignore
             params.append(list(module.parameters()))
 
-        optimizer = torch.optim.Adam(flatten(params), lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(flatten(params), lr=self.lr, weight_decay=self.weight_decay)  # type: ignore
 
         # training
         val_loss_best = LARGE_VAL
@@ -176,7 +176,7 @@ class BaseHTCE_Learner(nn.Module):
 
                 optimizer.zero_grad()
                 batch_loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)  # type: ignore
                 optimizer.step()
 
                 train_loss_source.append(batch_loss_source.detach())
@@ -257,7 +257,7 @@ class BaseHTCE_Learner(nn.Module):
         return outcome
 
 
-class HTCE_SLearner(nn.Module):
+class HTCE_SLearner(nn.Module):  # pylint: disable=abstract-method
     def __init__(
         self,
         name: str,
@@ -316,7 +316,7 @@ class HTCE_SLearner(nn.Module):
         self.n_iter_min = n_iter_min
         self.patience = patience
 
-    def train(
+    def train(  # pylint: disable=arguments-differ
         self,
         X_source_specific,
         X_source_shared,
@@ -339,7 +339,7 @@ class HTCE_SLearner(nn.Module):
         w_source = torch.Tensor(w_source).squeeze().long().to(DEVICE)
         w_target = torch.Tensor(w_target).squeeze().long().to(DEVICE)
 
-        (
+        (  # pylint: disable=unbalanced-tuple-unpacking
             X_target_specific,
             X_target_shared,
             y_target,
@@ -365,7 +365,7 @@ class HTCE_SLearner(nn.Module):
         train_indices_source = np.arange(n_source)
 
         params = list(self._shared_repr_estimator.parameters()) + list(self._po_estimator.parameters())
-        optimizer = torch.optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)  # type: ignore
 
         # training
         val_loss_best = LARGE_VAL
@@ -440,7 +440,7 @@ class HTCE_SLearner(nn.Module):
             if self.early_stopping or i % self.n_iter_print == 0:
                 with torch.no_grad():
                     preds = self._forward(X_target_specific_val, X_target_shared_val, w_target_val, env="target")
-                    val_loss = loss(preds, y_target_val)
+                    val_loss = loss(preds, y_target_val)  # type: ignore
                     if self.early_stopping:
                         if val_loss_best > val_loss:
                             val_loss_best = val_loss
@@ -480,12 +480,17 @@ class HTCE_SLearner(nn.Module):
         X_source_shared_with_w = torch.cat((X_source_shared, w_source.reshape((-1, 1))), dim=1)
         X_target_shared_with_w = torch.cat((X_target_shared, w_target.reshape((-1, 1))), dim=1)
 
-        return self._shared_repr_estimator._get_loss_diff(
+        return self._shared_repr_estimator._get_loss_diff(  # pylint: disable=protected-access
             X_source_specific, X_source_shared_with_w, env="source"
-        ) + self._shared_repr_estimator._get_loss_diff(X_target_specific, X_target_shared_with_w, env="target")
+        ) + self._shared_repr_estimator._get_loss_diff(  # pylint: disable=protected-access
+            X_target_specific, X_target_shared_with_w, env="target"
+        )
 
     def _get_ortho_penalty_flex(self):
-        return self._po_estimator._ortho_penalty_asymmetric() + self._po_estimator._ortho_penalty_asymmetric()
+        return (
+            self._po_estimator._ortho_penalty_asymmetric()  # pylint: disable=protected-access
+            + self._po_estimator._ortho_penalty_asymmetric()  # pylint: disable=protected-access
+        )
 
     def predict(self, X_specific, X_shared, return_po=False, env="target"):
         n = X_specific.shape[0]
@@ -507,7 +512,7 @@ class HTCE_SLearner(nn.Module):
         return outcome
 
 
-class HTCE_TLearner(BaseHTCE_Learner):
+class HTCE_TLearner(BaseHTCE_Learner):  # pylint: disable=abstract-method
     def __init__(
         self,
         name: str,
@@ -586,17 +591,28 @@ class HTCE_TLearner(BaseHTCE_Learner):
 
     def _get_ortho_penalty_shared(self, X_source_specific, X_source_shared, X_target_specific, X_target_shared):
         return (
-            self._shared_repr_estimators[0]._get_loss_diff(X_source_specific, X_source_shared, env="source")
-            + self._shared_repr_estimators[0]._get_loss_diff(X_target_specific, X_target_shared, env="target")
-            + self._shared_repr_estimators[1]._get_loss_diff(X_source_specific, X_source_shared, env="source")
-            + self._shared_repr_estimators[1]._get_loss_diff(X_target_specific, X_target_shared, env="target")
+            self._shared_repr_estimators[0]._get_loss_diff(  # pylint: disable=protected-access
+                X_source_specific, X_source_shared, env="source"
+            )
+            + self._shared_repr_estimators[0]._get_loss_diff(  # pylint: disable=protected-access
+                X_target_specific, X_target_shared, env="target"
+            )
+            + self._shared_repr_estimators[1]._get_loss_diff(  # pylint: disable=protected-access
+                X_source_specific, X_source_shared, env="source"
+            )
+            + self._shared_repr_estimators[1]._get_loss_diff(  # pylint: disable=protected-access
+                X_target_specific, X_target_shared, env="target"
+            )
         )
 
     def _get_ortho_penalty_flex(self):
-        return self._po_estimators[0]._ortho_penalty_asymmetric() + self._po_estimators[1]._ortho_penalty_asymmetric()
+        return (
+            self._po_estimators[0]._ortho_penalty_asymmetric()  # pylint: disable=protected-access
+            + self._po_estimators[1]._ortho_penalty_asymmetric()  # pylint: disable=protected-access
+        )
 
 
-class HTCE_TARNet(BaseHTCE_Learner):
+class HTCE_TARNet(BaseHTCE_Learner):  # pylint: disable=abstract-method
     def __init__(
         self,
         name: str,
@@ -689,9 +705,14 @@ class HTCE_TARNet(BaseHTCE_Learner):
         return torch.vstack((y0_preds, y1_preds)).T
 
     def _get_ortho_penalty_shared(self, X_source_specific, X_source_shared, X_target_specific, X_target_shared):
-        return self._shared_repr_estimator._get_loss_diff(
+        return self._shared_repr_estimator._get_loss_diff(  # pylint: disable=protected-access
             X_source_specific, X_source_shared, env="source"
-        ) + self._shared_repr_estimator._get_loss_diff(X_target_specific, X_target_shared, env="target")
+        ) + self._shared_repr_estimator._get_loss_diff(  # pylint: disable=protected-access
+            X_target_specific, X_target_shared, env="target"
+        )
 
     def _get_ortho_penalty_flex(self):
-        return self._po_estimators[0]._ortho_penalty_asymmetric() + self._po_estimators[1]._ortho_penalty_asymmetric()
+        return (
+            self._po_estimators[0]._ortho_penalty_asymmetric()  # pylint: disable=protected-access
+            + self._po_estimators[1]._ortho_penalty_asymmetric()  # pylint: disable=protected-access
+        )

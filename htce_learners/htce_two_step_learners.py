@@ -1,5 +1,5 @@
 import abc
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import torch
 from torch import nn
@@ -25,6 +25,9 @@ from htce_learners.constants import (
     DEFAULT_VAL_SPLIT,
 )
 from htce_learners.htce_one_step_learners import HTCE_TLearner
+
+if TYPE_CHECKING:
+    from contrib.catenets.models.torch.pseudo_outcome_nets import PseudoOutcomeLearner
 
 
 class HTCE_PseudoOutcomeLearner(nn.Module):
@@ -128,7 +131,7 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
             nonlin="relu",
         ).to(DEVICE)
 
-    def train(
+    def train(  # pylint: disable=arguments-differ
         self,
         X_source_specific,
         X_source_shared,
@@ -141,7 +144,7 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
     ) -> "PseudoOutcomeLearner":
 
         # STEP 1: fit plug-in estimators
-        (
+        (  # type: ignore
             mu_0_pred_source,
             mu_0_pred_target,
             mu_1_pred_source,
@@ -174,23 +177,23 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
             y_target,
             w_source,
             w_target,
-            p_source,
-            p_target,
+            p_source,  # type: ignore
+            p_target,  # type: ignore
             mu_0_pred_source,
             mu_0_pred_target,
             mu_1_pred_source,
             mu_1_pred_target,
         )
 
-        return self
+        return self  # type: ignore
 
     def predict(self, X_specific, X_shared, return_po=False, training=False, env="target") -> torch.Tensor:
         if return_po:
             raise NotImplementedError("PseudoOutcomeLearners have no Potential outcome predictors.")
-        outcome, y0_preds, y1_preds = self._po_estimator.predict(X_specific, X_shared, return_po=True, env=env)
+        outcome, y0_preds, y1_preds = self._po_estimator.predict(X_specific, X_shared, return_po=True, env=env)  # type: ignore
         cate_pred = outcome
 
-        cate_pred = self._te_estimator._forward(X_specific, X_shared, env)
+        cate_pred = self._te_estimator._forward(X_specific, X_shared, env)  # type: ignore  # pylint: disable=protected-access
 
         return cate_pred
 
@@ -243,7 +246,7 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
         # fit two separate (standard) models - TLearner
         self._po_estimator.train(
             X_source_specific,
-            X_source_shared,
+            X_source_shared,  # type: ignore
             X_target_specific,
             X_target_shared,
             y_source,
@@ -252,14 +255,14 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
             w_target,
         )
 
-        _, mu_0_pred_source, mu_1_pred_source = self._po_estimator.predict(
+        _, mu_0_pred_source, mu_1_pred_source = self._po_estimator.predict(  # type: ignore
             X_specific=X_source_specific, X_shared=X_source_shared, return_po=True, env="source"
         )
-        _, mu_0_pred_target, mu_1_pred_target = self._po_estimator.predict(
+        _, mu_0_pred_target, mu_1_pred_target = self._po_estimator.predict(  # type: ignore
             X_specific=X_target_specific, X_shared=X_target_shared, return_po=True, env="target"
         )
 
-        return mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target
+        return mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target  # type: ignore
 
     def _impute_propensity(
         self, X_source_specific, X_source_shared, X_target_specific, X_target_shared, w_source, w_target
@@ -269,19 +272,19 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
 
         self._propensity_estimator = self._generate_propensity_estimator("prop_estimator_impute_propensity")
         self._propensity_estimator.train(
-            X_source_specific, X_source_shared, X_target_specific, X_target_shared, w_source, w_target
+            X_source_specific, X_source_shared, X_target_specific, X_target_shared, w_source, w_target  # type: ignore
         )
 
-        p_pred_source = self._propensity_estimator.predict(X_source_specific, X_source_shared, env="source")
-        p_pred_source = compute_importance_weights(p_pred_source, w_source, self.weighting_strategy, {})
+        p_pred_source = self._propensity_estimator.predict(X_source_specific, X_source_shared, env="source")  # type: ignore
+        p_pred_source = compute_importance_weights(p_pred_source, w_source, self.weighting_strategy, {})  # type: ignore
 
-        p_pred_target = self._propensity_estimator.predict(X_target_specific, X_target_shared, env="target")
-        p_pred_target = compute_importance_weights(p_pred_target, w_target, self.weighting_strategy, {})
+        p_pred_target = self._propensity_estimator.predict(X_target_specific, X_target_shared, env="target")  # type: ignore
+        p_pred_target = compute_importance_weights(p_pred_target, w_target, self.weighting_strategy, {})  # type: ignore
 
-        return p_pred_source, p_pred_target
+        return p_pred_source, p_pred_target  # type: ignore
 
 
-class HTCE_DRLearner(HTCE_PseudoOutcomeLearner):
+class HTCE_DRLearner(HTCE_PseudoOutcomeLearner):  # pylint: disable=abstract-method
     """
     DR-learner for CATE estimation, based on doubly robust AIPW pseudo-outcome
     """
@@ -297,7 +300,7 @@ class HTCE_DRLearner(HTCE_PseudoOutcomeLearner):
         w_source,
         w_target,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target = self._impute_pos(
+        mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target = self._impute_pos(  # type: ignore
             X_source_specific,
             X_source_shared,
             X_target_specific,
@@ -310,7 +313,7 @@ class HTCE_DRLearner(HTCE_PseudoOutcomeLearner):
         p_pred_source, p_pred_target = self._impute_propensity(
             X_source_specific, X_source_shared, X_target_specific, X_target_shared, w_source, w_target
         )
-        return (
+        return (  # type: ignore
             mu_0_pred_source.squeeze(),
             mu_0_pred_target.squeeze(),
             mu_1_pred_source.squeeze(),
@@ -319,7 +322,7 @@ class HTCE_DRLearner(HTCE_PseudoOutcomeLearner):
             p_pred_target.squeeze(),
         )
 
-    def _second_step(
+    def _second_step(  # pylint: disable=arguments-renamed
         self,
         X_source_specific,
         X_source_shared,
@@ -354,7 +357,7 @@ class HTCE_DRLearner(HTCE_PseudoOutcomeLearner):
 
         self._te_estimator.train(
             X_source_specific,
-            X_source_shared,
+            X_source_shared,  # type: ignore
             X_target_specific,
             X_target_shared,
             pseudo_outcome_source,
