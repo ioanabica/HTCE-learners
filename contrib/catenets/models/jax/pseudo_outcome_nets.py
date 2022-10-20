@@ -219,8 +219,8 @@ class PseudoOutcomeNet(BaseCATENet):
     ) -> "PseudoOutcomeNet":
         # overwrite super so we can pass p as extra param
         # some quick input checks
-        X = check_X_is_np(X)
-        self._check_inputs(w, p)
+        X = check_X_is_np(X)  # type: ignore
+        self._check_inputs(w, p)  # type: ignore
 
         train_func = self._get_train_function()
         train_params = self.get_params()
@@ -235,7 +235,7 @@ class PseudoOutcomeNet(BaseCATENet):
 
         return self
 
-    def _get_predict_function(self) -> Callable:
+    def _get_predict_function(self) -> Callable:  # type: ignore
         # Two step nets do not need this
         pass
 
@@ -248,7 +248,7 @@ class PseudoOutcomeNet(BaseCATENet):
             raise NotImplementedError("TwoStepNets have no Propensity predictors.")
 
         if isinstance(X, pd.DataFrame):
-            X = X.values
+            X = X.values  # type: ignore
 
         if self.rescale_transformation:
             return 1 / self._scale_factor * self._predict_funs(self._params, X)
@@ -532,8 +532,8 @@ def train_pseudooutcome_net(
                 X,
                 y,
                 w,
-                fit_mask,
-                pred_mask,
+                fit_mask,  # type: ignore
+                pred_mask,  # type: ignore
                 first_stage_strategy=first_stage_strategy,
                 binary_y=binary_y,
                 n_layers_out=n_layers_out,
@@ -582,8 +582,8 @@ def train_pseudooutcome_net(
                     X,
                     y,
                     w,
-                    fit_mask,
-                    pred_mask,
+                    fit_mask,  # type: ignore
+                    pred_mask,  # type: ignore
                     first_stage_strategy=first_stage_strategy,
                     binary_y=binary_y,
                     n_layers_out=n_layers_out,
@@ -620,14 +620,14 @@ def train_pseudooutcome_net(
         mu_0 = None
         mu_1 = None
 
-    pseudo_outcome = transformation_function(y=y, w=w, p=pi_hat, mu_0=mu_0, mu_1=mu_1)
+    pseudo_outcome = transformation_function(y=y, w=w, p=pi_hat, mu_0=mu_0, mu_1=mu_1)  # type: ignore
     if rescale_transformation:
         scale_factor = onp.std(y) / onp.std(pseudo_outcome)
         if scale_factor > 1:
             scale_factor = 1
         else:
             pseudo_outcome = scale_factor * pseudo_outcome
-        params, predict_funs = train_output_net_only(
+        params, predict_funs = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
             X,
             pseudo_outcome,
             binary_y=False,
@@ -767,7 +767,7 @@ def _train_and_predict_first_stage(
 
         if transformation is not RA_TRANSFORMATION:
             log.debug("Training propensity net")
-            params_prop, predict_fun_prop = train_output_net_only(
+            params_prop, predict_fun_prop = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
                 X_fit,
                 w_fit,
                 binary_y=True,

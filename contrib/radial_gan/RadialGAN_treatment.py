@@ -243,7 +243,7 @@ def RadialGAN_Treatment(Train_X, Train_T, Train_Y, alpha):
     Train_T2 = Train_T[1]
     Train_Y2 = Train_Y[1]
 
-    log.info(f"Training RadialGAN.")
+    log.info("Training RadialGAN.")
     for it in tqdm(range(20000)):
 
         idx1 = np.random.permutation(len(Train_X1))

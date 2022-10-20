@@ -113,7 +113,7 @@ def simulate_treatment_setup(
     # generate observables
     y = w * mu_1 + (1 - w) * mu_0 + np.random.normal(0, error_sd, n)
 
-    return X, y, w, p, t
+    return X, y, w, p, t  # type: ignore
 
 
 # normal covariate model (Adapted from Hassanpour & Greiner, 2020) -------------
@@ -134,7 +134,7 @@ def get_multivariate_normal_params(m: int, correlated: bool = False) -> Tuple[np
 
 def get_set_normal_covariates(m: int, n: int, correlated: bool = False) -> np.ndarray:
     if m == 0:
-        return
+        return  # type: ignore
     mu, sig = get_multivariate_normal_params(m, correlated=correlated)
     return np.random.multivariate_normal(mean=mu, cov=sig, size=n)
 
@@ -220,7 +220,7 @@ def mu1_AISTATS(
     scale: bool = False,
 ) -> np.ndarray:
     if n_t == 0:
-        return mu_0
+        return mu_0  # type: ignore
     # use additive effect
     else:
         if scale:
@@ -259,7 +259,7 @@ def mu1_additive(
     mu_0: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     if n_t == 0:
-        return mu_0
+        return mu_0  # type: ignore
     else:
         coefs = np.random.normal(size=n_t)
         return np.dot(X[:, (n_w + n_c + n_o) : (n_w + n_c + n_o + n_t)], coefs) / n_t

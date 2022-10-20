@@ -9,6 +9,8 @@
 #
 Cython; python_version >= '3.8'  # For building pandas 0.24 wheel.
 googledrivedownloader~=0.4
+jax~=0.3.23
+jaxlib~=0.3.22
 jupyter~=1.0.0
 loguru~=0.6.0
 numpy~=1.18.5

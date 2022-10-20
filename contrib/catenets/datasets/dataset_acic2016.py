@@ -67,7 +67,9 @@ def get_acic_covariates(fn_csv: Path, keep_categorical: bool = False, preprocess
                 for k in range(len(list(enc.get_feature_names()))):
                     X[cols_ + list(enc.get_feature_names())[k]] = enc.transform(
                         np.array(X[[cols_]]).reshape((-1, 1))
-                    ).toarray()[:, k]
+                    ).toarray()[  # type: ignore
+                        :, k
+                    ]
 
                 feature_list.append(cols_)
 
@@ -128,7 +130,7 @@ def preprocess_simu(
         coefs_sq = [0, 0.1]
         beta_sq = np.random.choice(coefs_sq, size=N_NUM_COLS, replace=True, p=[1 - sp_nonlin, sp_nonlin])
         omega = np.random.choice([0, 1], replace=True, size=N_NUM_COLS, p=[prop_omega, 1 - prop_omega])
-        X_sq = X[:, NUMERIC_COLS] ** 2
+        X_sq = X[:, NUMERIC_COLS] ** 2  # type: ignore
         mu_0 = mu_0 + np.dot(X_sq, beta_sq).reshape((-1, 1))
         mu_1 = mu_1 + np.dot(X_sq, beta_sq * omega).reshape((-1, 1))
 

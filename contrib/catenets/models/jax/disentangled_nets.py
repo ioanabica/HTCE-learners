@@ -8,7 +8,7 @@ from typing import Any, Callable, List, Tuple
 import jax.numpy as jnp
 import numpy as onp
 from jax import grad, jit, random
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 
 import contrib.catenets.logger as log
 from contrib.catenets.models.constants import (
@@ -206,7 +206,7 @@ def train_snet3(
     same_init: bool = False,
 ) -> Any:
     """
-    SNet-3, based on the decompostion used in Hassanpour and Greiner (2020)
+    SNet-3, based on the decomposition used in Hassanpour and Greiner (2020)
     """
     # function to train a net with 3 representations
     y, w = check_shape_1d_data(y), check_shape_1d_data(w)
@@ -219,7 +219,9 @@ def train_snet3(
         penalty_diff = penalty_l2
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(  # pylint: disable=unbalanced-tuple-unpacking
+        X, y, w, val_split_prop=val_split_prop, seed=seed
+    )
     n = X.shape[0]  # could be different from before due to split
 
     # get representation layers
@@ -245,27 +247,27 @@ def train_snet3(
         # chain together the layers
         # param should look like [repr_c, repr_o, repr_t, po_0, po_1, prop]
         # initialise representation layers
-        rng, layer_rng = random.split(rng)
+        rng, layer_rng = random.split(rng)  # type: ignore
         input_shape_repr, param_repr_c = init_fun_repr(layer_rng, input_shape)
-        rng, layer_rng = random.split(rng)
+        rng, layer_rng = random.split(rng)  # type: ignore
         input_shape_repr_small, param_repr_o = init_fun_repr_small(layer_rng, input_shape)
-        rng, layer_rng = random.split(rng)
+        rng, layer_rng = random.split(rng)  # type: ignore
         _, param_repr_w = init_fun_repr_small(layer_rng, input_shape)
 
         # each head gets two representations
         input_shape_repr = input_shape_repr[:-1] + (input_shape_repr[-1] + input_shape_repr_small[-1],)
 
         # initialise output heads
-        rng, layer_rng = random.split(rng)
+        rng, layer_rng = random.split(rng)  # type: ignore
         if same_init:
             # initialise both on same values
             input_shape, param_0 = init_fun_head_po(layer_rng, input_shape_repr)
             input_shape, param_1 = init_fun_head_po(layer_rng, input_shape_repr)
         else:
             input_shape, param_0 = init_fun_head_po(layer_rng, input_shape_repr)
-            rng, layer_rng = random.split(rng)
+            rng, layer_rng = random.split(rng)  # type: ignore
             input_shape, param_1 = init_fun_head_po(layer_rng, input_shape_repr)
-        rng, layer_rng = random.split(rng)
+        rng, layer_rng = random.split(rng)  # type: ignore
         input_shape, param_prop = init_fun_head_prop(layer_rng, input_shape_repr)
         return input_shape, [
             param_repr_c,
@@ -331,8 +333,8 @@ def train_snet3(
         reps_w = predict_fun_repr_small(params[2], X)
 
         # concatenate
-        reps_po = _concatenate_representations((reps_c, reps_o))
-        reps_prop = _concatenate_representations((reps_c, reps_w))
+        reps_po = _concatenate_representations((reps_c, reps_o))  # type: ignore
+        reps_prop = _concatenate_representations((reps_c, reps_w))  # type: ignore
 
         # pass down to heads
         loss_0 = loss_head(params[3], (reps_po, y, 1 - w), penalty_l2)
@@ -355,7 +357,7 @@ def train_snet3(
         weightsq_body = sum(
             [sum([jnp.sum(params[j][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]) for j in range(3)]
         )
-        weightsq_head = heads_l2_penalty(params[3], params[4], n_layers_out, reg_diff, penalty_l2, penalty_diff)
+        weightsq_head = heads_l2_penalty(params[3], params[4], n_layers_out, reg_diff, penalty_l2, penalty_diff)  # type: ignore
 
         if not avg_objective:
             return (
@@ -389,15 +391,15 @@ def train_snet3(
         penalty_disc: float,
     ) -> jnp.ndarray:
         # updating function
-        params = get_params(state)
-        return opt_update(
+        params = get_params(state)  # type: ignore
+        return opt_update(  # type: ignore
             i,
             grad(loss_snet3)(params, batch, penalty_l2, penalty_orthogonal, penalty_disc),
-            state,
+            state,  # type: ignore
         )
 
     # initialise states
-    _, init_params = init_fun_snet3(rng_key, input_shape)
+    _, init_params = init_fun_snet3(rng_key, input_shape)  # type: ignore
     opt_state = opt_init(init_params)
 
     # calculate number of batches per epoch
@@ -435,18 +437,18 @@ def train_snet3(
             )
 
         if i % n_iter_print == 0:
-            log.info(f"Epoch: {i}, current {val_string} loss {l_curr}")
+            log.info(f"Epoch: {i}, current {val_string} loss {l_curr}")  # type: ignore
 
         if early_stopping and ((i + 1) * n_batches > n_iter_min):
             # check if loss updated
-            if l_curr < l_best:
-                l_best = l_curr
+            if l_curr < l_best:  # type: ignore
+                l_best = l_curr  # type: ignore
                 p_curr = 0
-                params_best = params_curr
+                params_best = params_curr  # type: ignore
             else:
-                if onp.isnan(l_curr):
+                if onp.isnan(l_curr):  # type: ignore
                     # if diverged, return best
-                    return params_best, (
+                    return params_best, (  # type: ignore
                         predict_fun_repr,
                         predict_fun_head_po,
                         predict_fun_head_prop,
@@ -456,14 +458,14 @@ def train_snet3(
             if p_curr > patience:
                 if return_val_loss:
                     # return loss without penalty
-                    l_final = loss_snet3(params_curr, (X_val, y_val, w_val), 0, 0, 0)
+                    l_final = loss_snet3(params_curr, (X_val, y_val, w_val), 0, 0, 0)  # type: ignore
                     return (
-                        params_curr,
+                        params_curr,  # type: ignore
                         (predict_fun_repr, predict_fun_head_po, predict_fun_head_prop),
                         l_final,
                     )
 
-                return params_curr, (
+                return params_curr, (  # type: ignore
                     predict_fun_repr,
                     predict_fun_head_po,
                     predict_fun_head_prop,
@@ -474,7 +476,9 @@ def train_snet3(
 
     if return_val_loss:
         # return loss without penalty
-        l_final = loss_snet3(get_params(opt_state), (X_val, y_val, w_val), 0, 0)
+        l_final = loss_snet3(  # pylint: disable=no-value-for-parameter
+            get_params(opt_state), (X_val, y_val, w_val), 0, 0
+        )
         return (
             trained_params,
             (predict_fun_repr, predict_fun_head_po, predict_fun_head_prop),
@@ -529,11 +533,11 @@ def predict_snet3(
     # stack other outputs
     if return_po:
         if return_prop:
-            return te, mu_0, mu_1, prop
+            return te, mu_0, mu_1, prop  # type: ignore
         else:
-            return te, mu_0, mu_1
+            return te, mu_0, mu_1  # type: ignore
     else:
         if return_prop:
-            return te, prop
+            return te, prop  # type: ignore
         else:
             return te

@@ -8,8 +8,11 @@ from typing import Any, Callable, Optional, Tuple
 import jax.numpy as jnp
 import numpy as onp
 from jax import grad, jit, random
-from jax.experimental import optimizers
-from jax.experimental.stax import Dense, Sigmoid, elu, glorot_normal, normal, serial
+from jax.example_libraries import optimizers
+from jax.example_libraries.stax import elu  # type: ignore
+from jax.example_libraries.stax import glorot_normal  # type: ignore
+from jax.example_libraries.stax import normal  # type: ignore
+from jax.example_libraries.stax import Dense, Sigmoid, serial
 
 import contrib.catenets.logger as log
 from contrib.catenets.models.constants import (
@@ -214,7 +217,9 @@ def train_flextenet(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(  # pylint: disable=unbalanced-tuple-unpacking
+        X, y, w, val_split_prop=val_split_prop, seed=seed
+    )
     n = X.shape[0]  # could be different from before due to split
 
     # get output head
@@ -292,7 +297,12 @@ def train_flextenet(
             if not avg_objective:
                 return -jnp.sum(targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)) + penalty
             else:
-                return -jnp.average(targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)) + penalty
+                return (
+                    -jnp.average(  # pylint: disable=invalid-unary-operand-type
+                        targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)
+                    )
+                    + penalty
+                )
 
     # set optimization routine
     # set optimizer
@@ -314,9 +324,9 @@ def train_flextenet(
         penalty_orthogonal: float,
         mode: int,
     ) -> jnp.ndarray:
-        params = get_params(state)
+        params = get_params(state)  # type: ignore
         g_params = grad(loss)(params, batch, penalty_l2, penalty_l2_p, penalty_orthogonal, mode)
-        return opt_update(i, g_params, state)
+        return opt_update(i, g_params, state)  # type: ignore
 
     # initialise states
     _, init_params = init_fun(rng_key, input_shape)
@@ -360,12 +370,12 @@ def train_flextenet(
                 )
 
             if i % n_iter_print == 0:
-                log.debug(f"Epoch: {i}, current {val_string} loss: {l_curr}")
+                log.debug(f"Epoch: {i}, current {val_string} loss: {l_curr}")  # type: ignore
 
             if early_stopping and ((i + 1) * n_batches > n_iter_min):
                 # check if loss updated
-                if l_curr < l_best:
-                    l_best = l_curr
+                if l_curr < l_best:  # type: ignore
+                    l_best = l_curr  # type: ignore
                     p_curr = 0
                 else:
                     p_curr = p_curr + 1
@@ -419,12 +429,12 @@ def train_flextenet(
                 )
 
             if i % n_iter_print == 0:
-                log.debug(f"Pre-training epoch: {i}, current {val_string} loss: {l_curr}")
+                log.debug(f"Pre-training epoch: {i}, current {val_string} loss: {l_curr}")  # type: ignore
 
             if early_stopping and ((i + 1) * n_batches > n_iter_min):
                 # check if loss updated
-                if l_curr < l_best:
-                    l_best = l_curr
+                if l_curr < l_best:  # type: ignore
+                    l_best = l_curr  # type: ignore
                     p_curr = 0
                 else:
                     p_curr = p_curr + 1
@@ -455,9 +465,9 @@ def train_flextenet(
             penalty_orthogonal: float,
             mode: int,
         ) -> Any:
-            params = get_params(state)
+            params = get_params(state)  # type: ignore
             g_params = grad(loss)(params, batch, penalty_l2, penalty_l2_p, penalty_orthogonal, mode)
-            return opt_update2(i, g_params, state)
+            return opt_update2(i, g_params, state)  # type: ignore
 
         opt_state = opt_init2(pre_trained_params)
         l_best = LARGE_VAL
@@ -492,12 +502,12 @@ def train_flextenet(
                 )
 
             if i % n_iter_print == 0:
-                log.debug(f"Epoch: {i}, current {val_string} loss: {l_curr}")
+                log.debug(f"Epoch: {i}, current {val_string} loss: {l_curr}")  # type: ignore
 
             if early_stopping and ((i + 1) * n_batches > n_iter_min):
                 # check if loss updated
-                if l_curr < l_best:
-                    l_best = l_curr
+                if l_curr < l_best:  # type: ignore
+                    l_best = l_curr  # type: ignore
                     p_curr = 0
                 else:
                     p_curr = p_curr + 1
@@ -610,7 +620,7 @@ def _compute_ortho_penalty_asymmetric(
             + _get_cos_reg(params[idx_out][0][0], params[idx_out][2][0][:n_idx, :], normalize_ortho)
         )
 
-    return mode * penalty_orthogonal * ortho_body
+    return mode * penalty_orthogonal * ortho_body  # type: ignore
 
 
 def _compute_penalty_l2(
@@ -718,7 +728,7 @@ def SplitLayerAsymmetric(n_units_s: int, n_units_p: int, first_layer: bool = Fal
             input_shape[2][:-1] + (n_units_p + n_units_s,),
         )
 
-        rng_1, rng_2, rng_3 = random.split(rng, N_SUBSPACES)
+        rng_1, rng_2, rng_3 = random.split(rng, N_SUBSPACES)  # type: ignore
         if same_init:  # use same init for the two private layers
             return out_shape, (
                 init_s(rng_1, input_shape[0])[1],
@@ -756,7 +766,7 @@ def TEOutputLayerAsymmetric(private: bool = True, same_init: bool = True) -> Tup
         # the two output layers are private
         def init_fun(rng: float, input_shape: Tuple) -> Tuple:
             out_shape = input_shape[1][:-1] + (1,)
-            rng_1, rng_2 = random.split(rng, N_SUBSPACES - 1)
+            rng_1, rng_2 = random.split(rng, N_SUBSPACES - 1)  # type: ignore
             return out_shape, (
                 init_f(rng_1, input_shape[1])[1],
                 init_f(rng_2, input_shape[2])[1],
@@ -772,7 +782,7 @@ def TEOutputLayerAsymmetric(private: bool = True, same_init: bool = True) -> Tup
         # also have a shared piece of output layer
         def init_fun(rng: float, input_shape: Tuple) -> Tuple:
             out_shape = input_shape[1][:-1] + (1,)
-            rng_1, rng_2, rng_3 = random.split(rng, N_SUBSPACES)
+            rng_1, rng_2, rng_3 = random.split(rng, N_SUBSPACES)  # type: ignore
             if same_init:
                 return out_shape, (
                     init_f(rng_1, input_shape[0])[1],
@@ -810,9 +820,7 @@ def FlexTENetArchitecture(
     same_init: bool = True,
 ) -> Any:
     if n_layers_out < 1:
-        raise ValueError(
-            "FlexTENet needs at least one hidden output layer (else there are no " "parameters to be shared)"
-        )
+        raise ValueError("FlexTENet needs at least one hidden output layer (else there are no parameters to be shared)")
 
     Nonlin_Elu = Elu_parallel
     Layer = SplitLayerAsymmetric
@@ -921,13 +929,13 @@ def DenseW(out_dim: int, W_init: Callable = glorot_normal(), b_init: Callable = 
 
     def init_fun(rng: float, input_shape: Tuple) -> Tuple:
         output_shape = input_shape[:-1] + (out_dim,)
-        k1, k2 = random.split(rng)
+        k1, k2 = random.split(rng)  # type: ignore
         W, b = W_init(k1, (input_shape[-1], out_dim)), b_init(k2, (out_dim,))
         return output_shape, (W, b)
 
     def apply_fun(params: jnp.ndarray, inputs: jnp.ndarray, **kwargs: Any) -> jnp.ndarray:
         W, b = params
         x, t = inputs
-        return (jnp.dot(x, W) + b, t)
+        return (jnp.dot(x, W) + b, t)  # type: ignore
 
     return init_fun, apply_fun

@@ -42,7 +42,7 @@ def load_data_npz(fname: Path, get_po: bool = True) -> dict:
     data = {"X": data_in["x"], "w": data_in["t"], "y": data_in["yf"]}
     try:
         data["ycf"] = data_in["ycf"]
-    except BaseException:
+    except BaseException:  # pylint: disable=broad-except
         data["ycf"] = None
 
     if get_po:
@@ -239,7 +239,7 @@ def load_raw(data_path: Path) -> Tuple:
 
     try:
         os.mkdir(data_path)
-    except BaseException:
+    except BaseException:  # pylint: disable=broad-except
         pass
 
     train_csv = data_path / TRAIN_DATASET

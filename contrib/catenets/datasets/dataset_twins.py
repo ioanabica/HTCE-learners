@@ -101,7 +101,9 @@ def preprocess(
     cat_list = ["adequacy"] + other_list2
 
     for feat in medrisk_list:
-        df[feat] = df[feat].apply(lambda x: df[feat].mode()[0] if x in [8, 9] else x)
+        df[feat] = df[feat].apply(
+            lambda x: df[feat].mode()[0] if x in [8, 9] else x  # pylint: disable=cell-var-from-loop
+        )
 
     for feat in other_list:
         df.loc[df[feat] == 99, feat] = df.loc[df[feat] != 99, feat].mean()
@@ -176,7 +178,7 @@ def preprocess(
         coef = np.random.uniform(-0.1, 0.1, size=[np.shape(x)[1], 1])
         prob = 1 / (1 + np.exp(-np.matmul(x, coef)))
 
-    w = np.random.binomial(1, prob)
+    w = np.random.binomial(1, prob)  # type: ignore
     y = y1 * w + y0 * (1 - w)
 
     potential_y = np.vstack((y0, y1)).T

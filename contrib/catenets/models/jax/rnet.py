@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as onp
 import pandas as pd
 from jax import grad, jit, random
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 from sklearn.model_selection import StratifiedKFold
 
 import contrib.catenets.logger as log
@@ -181,8 +181,8 @@ class RNet(BaseCATENet):
     ) -> "RNet":
         # overwrite super so we can pass p as extra param
         # some quick input checks
-        X = check_X_is_np(X)
-        self._check_inputs(w, p)
+        X = check_X_is_np(X)  # type: ignore
+        self._check_inputs(w, p)  # type: ignore
 
         train_func = self._get_train_function()
         train_params = self.get_params()
@@ -191,7 +191,7 @@ class RNet(BaseCATENet):
 
         return self
 
-    def _get_predict_function(self) -> Callable:
+    def _get_predict_function(self) -> Callable:  # type: ignore
         # Two step nets do not need this
         pass
 
@@ -204,7 +204,7 @@ class RNet(BaseCATENet):
             raise NotImplementedError("TwoStepNets have no Propensity predictors.")
 
         if isinstance(X, pd.DataFrame):
-            X = X.values
+            X = X.values  # type: ignore
         return self._predict_funs(self._params, X)
 
 
@@ -267,8 +267,8 @@ def train_r_net(
             X,
             y,
             w,
-            fit_mask,
-            pred_mask,
+            fit_mask,  # type: ignore
+            pred_mask,  # type: ignore
             n_layers_out=n_layers_out,
             n_layers_r=n_layers_r,
             n_units_out=n_units_out,
@@ -312,8 +312,8 @@ def train_r_net(
                 X,
                 y,
                 w,
-                fit_mask,
-                pred_mask,
+                fit_mask,  # type: ignore
+                pred_mask,  # type: ignore
                 n_layers_out=n_layers_out,
                 n_layers_r=n_layers_r,
                 n_units_out=n_units_out,
@@ -421,7 +421,7 @@ def _train_and_predict_r_stage1(
     X_pred = X[pred_mask, :]
 
     log.debug("Training output Net")
-    params_out, predict_fun_out = train_output_net_only(
+    params_out, predict_fun_out = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
         X_fit,
         y_fit,
         n_layers_out=n_layers_out,
@@ -444,7 +444,7 @@ def _train_and_predict_r_stage1(
     mu_hat = predict_fun_out(params_out, X_pred)
 
     log.debug("Training propensity net")
-    params_prop, predict_fun_prop = train_output_net_only(
+    params_prop, predict_fun_prop = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
         X_fit,
         w_fit,
         binary_y=True,
@@ -500,7 +500,7 @@ def train_r_stage2(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y_ortho, w_ortho, X_val, y_val, w_val, val_string = make_val_split(
+    X, y_ortho, w_ortho, X_val, y_val, w_val, val_string = make_val_split(  # pylint: disable=unbalanced-tuple-unpacking
         X, y_ortho, w_ortho, val_split_prop=val_split_prop, seed=seed, stratify_w=False
     )
     n = X.shape[0]  # could be different from before due to split
@@ -533,10 +533,10 @@ def train_r_stage2(
     # set update function
     @jit
     def update(i: int, state: dict, batch: jnp.ndarray, penalty: float) -> jnp.ndarray:
-        params = get_params(state)
+        params = get_params(state)  # type: ignore
         g_params = grad(loss)(params, batch, penalty)
         # g_params = optimizers.clip_grads(g_params, 1.0)
-        return opt_update(i, g_params, state)
+        return opt_update(i, g_params, state)  # type: ignore
 
     # initialise states
     _, init_params = init_fun(rng_key, input_shape)
@@ -564,12 +564,12 @@ def train_r_stage2(
             l_curr = loss(params_curr, (X_val, y_val, w_val), penalty_l2)
 
         if i % n_iter_print == 0:
-            log.debug(f"Epoch: {i}, current {val_string} loss: {l_curr}")
+            log.debug(f"Epoch: {i}, current {val_string} loss: {l_curr}")  # type: ignore
 
         if early_stopping and ((i + 1) * n_batches > n_iter_min):
             # check if loss updated
-            if l_curr < l_best:
-                l_best = l_curr
+            if l_curr < l_best:  # type: ignore
+                l_best = l_curr  # type: ignore
                 p_curr = 0
             else:
                 p_curr = p_curr + 1
