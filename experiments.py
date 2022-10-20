@@ -197,7 +197,7 @@ class BaselineExperiment:
         learner_names_list, methods_list = list(learner_names_list), list(methods_list)
         log.info(f"Using dataset {dataset} with learners = {learner_names_list} and methods = {methods_list}.")
 
-        X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio)
+        X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio)  # type: ignore
 
         (X_source_specific_train, X_source_shared_train, X_target_specific_train, X_target_shared_train) = X_train
         (X_source_specific_test, X_source_shared_test, X_target_specific_test, X_target_shared_test) = X_test
@@ -307,7 +307,7 @@ class POSharingExperiment(BaselineExperiment):
         learner_names_list, methods_list = list(learner_names_list), list(methods_list)
         log.info(f"Using dataset {dataset} with learners = {learner_names_list} and methods = {methods_list}.")
 
-        X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio)
+        X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio)  # type: ignore
 
         (X_source_specific_train, X_source_shared_train, X_target_specific_train, X_target_shared_train) = X_train
         (X_source_specific_test, X_source_shared_test, X_target_specific_test, X_target_shared_test) = X_test
@@ -444,7 +444,9 @@ class TargetDatasetSizeExperiment(BaselineExperiment):
         for target_dataset_size in self.target_dataset_size_list:
             log.info(f"Now working with target dataset size = {target_dataset_size}...")
 
-            X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio, num_examples_target=target_dataset_size)
+            X_train, X_test = load(  # type: ignore
+                dataset, self.seed, train_ratio=train_ratio, num_examples_target=target_dataset_size
+            )
 
             (X_source_specific_train, X_source_shared_train, X_target_specific_train, X_target_shared_train) = X_train
             (X_source_specific_test, X_source_shared_test, X_target_specific_test, X_target_shared_test) = X_test
@@ -566,10 +568,11 @@ class SelectionBiasExperiment(BaselineExperiment):
             for selection_bias_target in self.selection_bias_target_list:
 
                 log.info(
-                    f"Now working with slection bias source = {selection_bias_source} target = {selection_bias_target} ..."
+                    f"Now working with selection bias source = {selection_bias_source} "
+                    f"target = {selection_bias_target} ..."
                 )
 
-                X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio)
+                X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio)  # type: ignore
 
                 (
                     X_source_specific_train,
