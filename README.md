@@ -12,6 +12,7 @@ PyTorch implementation for the HTCE-learners.
 Note that the code in contrib/ for CATENets [1, 2] is from:  https://github.com/AliciaCurth/CATENets
 and the code for RadialGAN [3] is adapted from: https://github.com/vanderschaarlab/mlforhealthlabpub/tree/main/alg/RadialGAN 
 
+Install requirements from [`requirements.txt`](./requirements.txt). Python version 3.6 or 3.8 recommended. See comments inside [`requirements.txt`](./requirements.txt) for additional installation notes.
 
 To reproduce the experiments in the paper (for the Twins dataset), use the following commands:
 - Benchmark comparison (Table 1)
