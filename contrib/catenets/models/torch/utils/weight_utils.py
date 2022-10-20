@@ -28,7 +28,7 @@ def compute_importance_weights(
     w: torch.Tensor,
     weighting_strategy: str,
     weight_args: Optional[dict] = None,
-) -> torch.Tensor:
+) -> torch.Tensor:  # type: ignore
     if weighting_strategy not in ALL_WEIGHTING_STRATEGIES:
         raise ValueError(
             f"weighting_strategy should be in {ALL_WEIGHTING_STRATEGIES}" f"You passed {weighting_strategy}"

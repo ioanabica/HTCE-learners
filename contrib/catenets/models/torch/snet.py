@@ -219,7 +219,7 @@ class SNet(BaseCATEEstimator):
                 + list(self._po_estimators[1].parameters())
             )
 
-        self.optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
+        self.optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)  # type: ignore
 
     def loss(
         self,
@@ -255,7 +255,7 @@ class SNet(BaseCATEEstimator):
                 t_pred = t_pred + EPS
                 return nn.CrossEntropyLoss()(t_pred, t_true)
             else:
-                return 0
+                return 0  # type: ignore
 
         return (
             po_loss(y0_pred, y1_pred, y_true, t_true)
@@ -286,7 +286,7 @@ class SNet(BaseCATEEstimator):
         y = torch.Tensor(y).squeeze().to(DEVICE)
         w = torch.Tensor(w).squeeze().long().to(DEVICE)
 
-        X, y, w, X_val, y_val, w_val, val_string = make_val_split(
+        X, y, w, X_val, y_val, w_val, val_string = make_val_split(  # pylint: disable=unbalanced-tuple-unpacking
             X, y, w=w, val_split_prop=self.val_split_prop, seed=self.seed
         )
 
@@ -318,7 +318,7 @@ class SNet(BaseCATEEstimator):
 
                 batch_loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)  # type: ignore
 
                 self.optimizer.step()
 
@@ -347,37 +347,37 @@ class SNet(BaseCATEEstimator):
         return self
 
     def _ortho_reg(self) -> float:
-        def _get_absolute_rowsums(mat: torch) -> torch.Tensor:
-            return torch.sum(torch.abs(mat), dim=0)
+        def _get_absolute_rowsums(mat: torch) -> torch.Tensor:  # type: ignore
+            return torch.sum(torch.abs(mat), dim=0)  # type: ignore
 
         def _get_cos_reg(params_0: torch.Tensor, params_1: torch.Tensor, normalize: bool = False) -> torch.Tensor:
             if normalize:
-                params_0 = params_0 / torch.linalg.norm(params_0, dim=0)
-                params_1 = params_1 / torch.linalg.norm(params_1, dim=0)
+                params_0 = params_0 / torch.linalg.norm(params_0, dim=0)  # type: ignore
+                params_1 = params_1 / torch.linalg.norm(params_1, dim=0)  # type: ignore
 
             x_min = min(params_0.shape[0], params_1.shape[0])
             y_min = min(params_0.shape[1], params_1.shape[1])
 
-            return torch.linalg.norm(params_0[:x_min, :y_min] * params_1[:x_min, :y_min], "fro") ** 2
+            return torch.linalg.norm(params_0[:x_min, :y_min] * params_1[:x_min, :y_min], "fro") ** 2  # type: ignore
 
-        reps_o_params = self._reps_o.model[0].weight
-        reps_mu0_params = self._reps_mu0.model[0].weight
-        reps_mu1_params = self._reps_mu1.model[0].weight
+        reps_o_params = self._reps_o.model[0].weight  # pylint: disable=unsubscriptable-object
+        reps_mu0_params = self._reps_mu0.model[0].weight  # pylint: disable=unsubscriptable-object
+        reps_mu1_params = self._reps_mu1.model[0].weight  # pylint: disable=unsubscriptable-object
 
         if self.with_prop:
-            reps_c_params = self._reps_c.model[0].weight
-            reps_prop_params = self._reps_prop.model[0].weight
+            reps_c_params = self._reps_c.model[0].weight  # pylint: disable=unsubscriptable-object
+            reps_prop_params = self._reps_prop.model[0].weight  # pylint: disable=unsubscriptable-object
 
         # define ortho-reg function
         if self.ortho_reg_type == "abs":
-            col_o = _get_absolute_rowsums(reps_o_params)
-            col_mu0 = _get_absolute_rowsums(reps_mu0_params)
-            col_mu1 = _get_absolute_rowsums(reps_mu1_params)
+            col_o = _get_absolute_rowsums(reps_o_params)  # type: ignore
+            col_mu0 = _get_absolute_rowsums(reps_mu0_params)  # type: ignore
+            col_mu1 = _get_absolute_rowsums(reps_mu1_params)  # type: ignore
             if self.with_prop:
-                col_c = _get_absolute_rowsums(reps_c_params)
-                col_w = _get_absolute_rowsums(reps_prop_params)
+                col_c = _get_absolute_rowsums(reps_c_params)  # type: ignore
+                col_w = _get_absolute_rowsums(reps_prop_params)  # type: ignore
 
-                return self.penalty_orthogonal * torch.sum(
+                return self.penalty_orthogonal * torch.sum(  # type: ignore
                     col_c * col_o
                     + col_c * col_w
                     + col_c * col_mu1
@@ -390,27 +390,27 @@ class SNet(BaseCATEEstimator):
                     + col_w * col_mu1
                 )
             else:
-                return self.penalty_orthogonal * torch.sum(+col_mu0 * col_o + col_o * col_mu1 + col_mu0 * col_mu1)
+                return self.penalty_orthogonal * torch.sum(+col_mu0 * col_o + col_o * col_mu1 + col_mu0 * col_mu1)  # type: ignore
 
         elif self.ortho_reg_type == "fro":
             if self.with_prop:
                 return self.penalty_orthogonal * (
-                    _get_cos_reg(reps_c_params, reps_o_params)
-                    + _get_cos_reg(reps_c_params, reps_mu0_params)
-                    + _get_cos_reg(reps_c_params, reps_mu1_params)
-                    + _get_cos_reg(reps_c_params, reps_prop_params)
-                    + _get_cos_reg(reps_o_params, reps_mu0_params)
-                    + _get_cos_reg(reps_o_params, reps_mu1_params)
-                    + _get_cos_reg(reps_o_params, reps_prop_params)
-                    + _get_cos_reg(reps_mu0_params, reps_mu1_params)
-                    + _get_cos_reg(reps_mu0_params, reps_prop_params)
-                    + _get_cos_reg(reps_mu1_params, reps_prop_params)
+                    _get_cos_reg(reps_c_params, reps_o_params)  # type: ignore
+                    + _get_cos_reg(reps_c_params, reps_mu0_params)  # type: ignore
+                    + _get_cos_reg(reps_c_params, reps_mu1_params)  # type: ignore
+                    + _get_cos_reg(reps_c_params, reps_prop_params)  # type: ignore
+                    + _get_cos_reg(reps_o_params, reps_mu0_params)  # type: ignore
+                    + _get_cos_reg(reps_o_params, reps_mu1_params)  # type: ignore
+                    + _get_cos_reg(reps_o_params, reps_prop_params)  # type: ignore
+                    + _get_cos_reg(reps_mu0_params, reps_mu1_params)  # type: ignore
+                    + _get_cos_reg(reps_mu0_params, reps_prop_params)  # type: ignore
+                    + _get_cos_reg(reps_mu1_params, reps_prop_params)  # type: ignore
                 )
             else:
                 return self.penalty_orthogonal * (
-                    +_get_cos_reg(reps_o_params, reps_mu0_params)
-                    + _get_cos_reg(reps_o_params, reps_mu1_params)
-                    + _get_cos_reg(reps_mu0_params, reps_mu1_params)
+                    +_get_cos_reg(reps_o_params, reps_mu0_params)  # type: ignore
+                    + _get_cos_reg(reps_o_params, reps_mu1_params)  # type: ignore
+                    + _get_cos_reg(reps_mu0_params, reps_mu1_params)  # type: ignore
                 )
 
         else:
@@ -447,7 +447,7 @@ class SNet(BaseCATEEstimator):
             reps_po_0 = torch.cat((reps_c, reps_o, reps_mu0), dim=1)
             reps_po_1 = torch.cat((reps_c, reps_o, reps_mu1), dim=1)
             reps_w = torch.cat((reps_c, reps_w), dim=1)
-            prop_preds = self._propensity_estimator(reps_w)
+            prop_preds = self._propensity_estimator(reps_w)  # pylint: disable=not-callable
         else:
             reps_po_0 = torch.cat((reps_o, reps_mu0), dim=1)
             reps_po_1 = torch.cat((reps_o, reps_mu1), dim=1)
@@ -476,6 +476,6 @@ class SNet(BaseCATEEstimator):
         outcome = y1_preds - y0_preds
 
         if return_po:
-            return outcome, y0_preds, y1_preds
+            return outcome, y0_preds, y1_preds  # type: ignore
 
         return outcome

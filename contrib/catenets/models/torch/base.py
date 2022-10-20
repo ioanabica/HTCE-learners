@@ -27,7 +27,7 @@ from contrib.catenets.models.torch.utils.decorators import benchmark, check_inpu
 from contrib.catenets.models.torch.utils.model_utils import make_val_split
 from contrib.catenets.models.torch.utils.weight_utils import compute_importance_weights
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # type: ignore
 
 EPS = 1e-8
 
@@ -139,7 +139,7 @@ class BasicNet(nn.Module):
             layers = [nn.Linear(n_unit_in, 1)]
 
         if binary_y:
-            layers.append(nn.Sigmoid())
+            layers.append(nn.Sigmoid())  # type: ignore
 
         # return final architecture
         self.model = nn.Sequential(*layers).to(DEVICE)
@@ -155,12 +155,14 @@ class BasicNet(nn.Module):
         self.clipping_value = clipping_value
         self.early_stopping = early_stopping
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)  # type: ignore
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return self.model(X)
+        return self.model(X)  # pylint: disable=not-callable
 
-    def train(self, X: torch.Tensor, y: torch.Tensor, weight: Optional[torch.Tensor] = None) -> "BasicNet":
+    def train(  # pylint: disable=arguments-differ
+        self, X: torch.Tensor, y: torch.Tensor, weight: Optional[torch.Tensor] = None
+    ) -> "BasicNet":
         X = self._check_tensor(X)
         y = self._check_tensor(y).squeeze()
 
@@ -201,7 +203,7 @@ class BasicNet(nn.Module):
 
                 batch_loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)  # type: ignore
 
                 self.optimizer.step()
 
@@ -283,7 +285,7 @@ class RepresentationNet(nn.Module):
         self.model = nn.Sequential(*layers).to(DEVICE)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return self.model(X)
+        return self.model(X)  # pylint: disable=not-callable
 
 
 class PropensityNet(nn.Module):
@@ -405,19 +407,19 @@ class PropensityNet(nn.Module):
         self.clipping_value = clipping_value
         self.early_stopping = early_stopping
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)  # type: ignore
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return self.model(X)
+        return self.model(X)  # pylint: disable=not-callable
 
     def get_importance_weights(self, X: torch.Tensor, w: Optional[torch.Tensor] = None) -> torch.Tensor:
         p_pred = self.forward(X).squeeze()[:, 1]
-        return compute_importance_weights(p_pred, w, self.weighting_strategy, {})
+        return compute_importance_weights(p_pred, w, self.weighting_strategy, {})  # type: ignore
 
     def loss(self, y_pred: torch.Tensor, y_target: torch.Tensor) -> torch.Tensor:
         return nn.NLLLoss()(torch.log(y_pred + EPS), y_target)
 
-    def train(self, X: torch.Tensor, y: torch.Tensor) -> "PropensityNet":
+    def train(self, X: torch.Tensor, y: torch.Tensor) -> "PropensityNet":  # pylint: disable=arguments-differ
         X = self._check_tensor(X)
         y = self._check_tensor(y).long()
 
@@ -452,7 +454,7 @@ class PropensityNet(nn.Module):
 
                 batch_loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)  # type: ignore
 
                 self.optimizer.step()
                 train_loss.append(batch_loss.detach())
@@ -493,7 +495,7 @@ class BaseCATEEstimator(nn.Module):
     The interface has train/forward API for PyTorch-based models and fit/predict API for sklearn-based models.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=useless-super-delegation
         self,
     ) -> None:
         super(BaseCATEEstimator, self).__init__()
@@ -522,12 +524,12 @@ class BaseCATEEstimator(nn.Module):
 
         hat_te = self.predict(X)
 
-        return torch.sqrt(torch.mean(((y[:, 1] - y[:, 0]) - hat_te) ** 2))
+        return torch.sqrt(torch.mean(((y[:, 1] - y[:, 0]) - hat_te) ** 2))  # type: ignore
 
     @abc.abstractmethod
     @check_input_train
     @benchmark
-    def train(
+    def train(  # pylint: disable=arguments-differ
         self,
         X: torch.Tensor,
         y: torch.Tensor,
@@ -545,7 +547,7 @@ class BaseCATEEstimator(nn.Module):
         w: torch.Tensor
             Treatment indicator
         """
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     @benchmark
     def fit(
@@ -591,7 +593,7 @@ class BaseCATEEstimator(nn.Module):
         -------
         potential outcomes probabilities
         """
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def _check_tensor(self, X: torch.Tensor) -> torch.Tensor:
         if isinstance(X, torch.Tensor):

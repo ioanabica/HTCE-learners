@@ -160,7 +160,7 @@ class SLearner(BaseCATEEstimator):
 
         if hasattr(self._po_estimator, "fit"):
             log.info("Fit the sklearn po_estimator")
-            self._po_estimator.fit(X_ext.detach().numpy(), y.detach().numpy())
+            self._po_estimator.fit(X_ext.detach().numpy(), y.detach().numpy())  # type: ignore
             return self
 
         if self._weighting_strategy is None:
@@ -187,7 +187,7 @@ class SLearner(BaseCATEEstimator):
         X_ext_0 = torch.cat((X, w_0), dim=1).to(DEVICE)
         X_ext_1 = torch.cat((X, w_1), dim=1).to(DEVICE)
 
-        return [X_ext_0, X_ext_1]
+        return [X_ext_0, X_ext_1]  # type: ignore
 
     def predict(self, X: torch.Tensor, return_po: bool = False) -> torch.Tensor:
         """
@@ -211,6 +211,6 @@ class SLearner(BaseCATEEstimator):
         outcome = y[1] - y[0]
 
         if return_po:
-            return outcome, y[0], y[1]
+            return outcome, y[0], y[1]  # type: ignore
 
         return outcome

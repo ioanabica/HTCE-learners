@@ -126,7 +126,7 @@ class TLearner(BaseCATEEstimator):
         outcome = y_hat[1] - y_hat[0]
 
         if return_po:
-            return outcome, y_hat[0], y_hat[1]
+            return outcome, y_hat[0], y_hat[1]  # type: ignore
 
         return outcome
 

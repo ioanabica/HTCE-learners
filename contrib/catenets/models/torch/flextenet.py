@@ -46,7 +46,7 @@ class FlexTELinearLayer(nn.Module):
         features_vector = tensors[0]
         treatments_vector = tensors[1]
 
-        return [self.model(features_vector), treatments_vector]
+        return [self.model(features_vector), treatments_vector]  # pylint: disable=not-callable
 
 
 class FlexTESplitLayer(nn.Module):
@@ -89,9 +89,9 @@ class FlexTESplitLayer(nn.Module):
             X = tensors[0]
             W = tensors[1]
 
-            rep_s = self.net_shared(X)
-            rep_p0 = self.net_p0(X)
-            rep_p1 = self.net_p1(X)
+            rep_s = self.net_shared(X)  # pylint: disable=not-callable
+            rep_p0 = self.net_p0(X)  # pylint: disable=not-callable
+            rep_p1 = self.net_p1(X)  # pylint: disable=not-callable
 
         else:
             X_s = tensors[0]
@@ -99,9 +99,9 @@ class FlexTESplitLayer(nn.Module):
             X_p1 = tensors[2]
             W = tensors[3]
 
-            rep_s = self.net_shared(X_s)
-            rep_p0 = self.net_p0(torch.cat([X_s, X_p0], dim=1))
-            rep_p1 = self.net_p1(torch.cat([X_s, X_p1], dim=1))
+            rep_s = self.net_shared(X_s)  # pylint: disable=not-callable
+            rep_p0 = self.net_p0(torch.cat([X_s, X_p0], dim=1))  # pylint: disable=not-callable
+            rep_p1 = self.net_p1(torch.cat([X_s, X_p1], dim=1))  # pylint: disable=not-callable
 
         return [rep_s, rep_p0, rep_p1, W]
 
@@ -125,20 +125,20 @@ class FlexTEOutputLayer(nn.Module):
         W = tensors[3]
 
         if self.private:
-            rep_p0 = self.net_p0(torch.cat([X_s, X_p0], dim=1)).squeeze()
-            rep_p1 = self.net_p1(torch.cat([X_s, X_p1], dim=1)).squeeze()
+            rep_p0 = self.net_p0(torch.cat([X_s, X_p0], dim=1)).squeeze()  # pylint: disable=not-callable
+            rep_p1 = self.net_p1(torch.cat([X_s, X_p1], dim=1)).squeeze()  # pylint: disable=not-callable
 
             return (1 - W) * rep_p0 + W * rep_p1
         else:
-            rep_s = self.net_shared(X_s).squeeze()
-            rep_p0 = self.net_p0(torch.cat([X_s, X_p0], dim=1)).squeeze()
-            rep_p1 = self.net_p1(torch.cat([X_s, X_p1], dim=1)).squeeze()
+            rep_s = self.net_shared(X_s).squeeze()  # pylint: disable=not-callable
+            rep_p0 = self.net_p0(torch.cat([X_s, X_p0], dim=1)).squeeze()  # pylint: disable=not-callable
+            rep_p1 = self.net_p1(torch.cat([X_s, X_p1], dim=1)).squeeze()  # pylint: disable=not-callable
 
             return (1 - W) * rep_p0 + W * rep_p1 + rep_s
 
 
 class ElementWiseParallelActivation(nn.Module):
-    """Layer that applies a scalar function elementwise on its inputs.
+    """Layer that applies a scalar function element-wise on its inputs.
 
     Input looks like: X_s, X_p0, X_p1, t = inputs
     """
@@ -393,38 +393,38 @@ class FlexTENet(BaseCATEEstimator):
     def _ortho_penalty_asymmetric(self) -> torch.Tensor:
         def _get_cos_reg(params_0: torch.Tensor, params_1: torch.Tensor, normalize: bool) -> torch.Tensor:
             if normalize:
-                params_0 = params_0 / torch.linalg.norm(params_0, dim=0)
-                params_1 = params_1 / torch.linalg.norm(params_1, dim=0)
+                params_0 = params_0 / torch.linalg.norm(params_0, dim=0)  # type: ignore
+                params_1 = params_1 / torch.linalg.norm(params_1, dim=0)  # type: ignore
 
             x_min = min(params_0.shape[0], params_1.shape[0])
             y_min = min(params_0.shape[1], params_1.shape[1])
 
-            return torch.linalg.norm(params_0[:x_min, :y_min] * params_1[:x_min, :y_min], "fro") ** 2
+            return torch.linalg.norm(params_0[:x_min, :y_min] * params_1[:x_min, :y_min], "fro") ** 2  # type: ignore
 
         def _apply_reg_split_layer(layer: FlexTESplitLayer, full: bool = True) -> torch.Tensor:
             _ortho_body = 0
             if full:
                 _ortho_body = _get_cos_reg(
-                    layer.net_p0[-1].weight,
-                    layer.net_p1[-1].weight,
+                    layer.net_p0[-1].weight,  # type: ignore
+                    layer.net_p1[-1].weight,  # type: ignore
                     self.normalize_ortho,
                 )
             _ortho_body += torch.sum(
                 _get_cos_reg(
-                    layer.net_shared[-1].weight,
-                    layer.net_p0[-1].weight,
+                    layer.net_shared[-1].weight,  # type: ignore
+                    layer.net_p0[-1].weight,  # type: ignore
                     self.normalize_ortho,
                 )
                 + _get_cos_reg(
-                    layer.net_shared[-1].weight,
-                    layer.net_p1[-1].weight,
+                    layer.net_shared[-1].weight,  # type: ignore
+                    layer.net_p1[-1].weight,  # type: ignore
                     self.normalize_ortho,
                 )
             )
             return _ortho_body
 
         ortho_body = 0
-        for layer in self.model:
+        for layer in self.model:  # pylint: disable=not-an-iterable
             if not isinstance(layer, (FlexTESplitLayer, FlexTEOutputLayer)):
                 continue
 
@@ -434,9 +434,9 @@ class FlexTENet(BaseCATEEstimator):
             if self.private_out:
                 continue
 
-            ortho_body += _apply_reg_split_layer(layer, full=False)
+            ortho_body += _apply_reg_split_layer(layer, full=False)  # type: ignore
 
-        return self.penalty_orthogonal * ortho_body
+        return self.penalty_orthogonal * ortho_body  # type: ignore
 
     def loss(
         self,
@@ -481,7 +481,7 @@ class FlexTENet(BaseCATEEstimator):
         y = torch.Tensor(y).squeeze().to(DEVICE)
         w = torch.Tensor(w).squeeze().long().to(DEVICE)
 
-        X, y, w, X_val, y_val, w_val, val_string = make_val_split(
+        X, y, w, X_val, y_val, w_val, val_string = make_val_split(  # pylint: disable=unbalanced-tuple-unpacking
             X, y, w=w, val_split_prop=self.val_split_prop, seed=self.seed
         )
 
@@ -492,7 +492,7 @@ class FlexTENet(BaseCATEEstimator):
         n_batches = int(np.round(n / batch_size)) if batch_size < n else 1
         train_indices = np.arange(n)
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)  # type: ignore
 
         # training
         val_loss_best = LARGE_VAL
@@ -515,7 +515,7 @@ class FlexTENet(BaseCATEEstimator):
 
                 batch_loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)  # type: ignore
 
                 optimizer.step()
 
@@ -559,12 +559,12 @@ class FlexTENet(BaseCATEEstimator):
         W0 = torch.zeros(X.shape[0]).to(DEVICE)
         W1 = torch.ones(X.shape[0]).to(DEVICE)
 
-        mu0 = self.model([X, W0])
-        mu1 = self.model([X, W1])
+        mu0 = self.model([X, W0])  # pylint: disable=not-callable
+        mu1 = self.model([X, W1])  # pylint: disable=not-callable
 
         te = mu1 - mu0
 
         if return_po:
-            return te, mu0, mu1
+            return te, mu0, mu1  # type: ignore
 
         return te

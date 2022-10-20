@@ -263,7 +263,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
         if self.n_folds == 1:
             pred_mask = np.ones(n, dtype=bool)
             # fit plug-in models
-            mu_0_pred, mu_1_pred, p_pred = self._first_step(X, y, w, pred_mask, pred_mask)
+            mu_0_pred, mu_1_pred, p_pred = self._first_step(X, y, w, pred_mask, pred_mask)  # type: ignore
         else:
             mu_0_pred, mu_1_pred, p_pred = (
                 torch.zeros(n).to(DEVICE),
@@ -276,7 +276,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
 
             for train_index, test_index in splitter.split(X.cpu(), w.cpu()):
                 # create masks
-                pred_mask = torch.zeros(n, dtype=bool).to(DEVICE)
+                pred_mask = torch.zeros(n, dtype=bool).to(DEVICE)  # type: ignore
                 pred_mask[test_index] = 1
 
                 # fit plug-in te_estimator
@@ -291,7 +291,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
             p = p_pred
 
         # STEP 2: direct TE estimation
-        self._second_step(X, y, w, p, mu_0_pred, mu_1_pred)
+        self._second_step(X, y, w, p, mu_0_pred, mu_1_pred)  # type: ignore
 
         return self
 
@@ -365,7 +365,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
         self,
         X: torch.Tensor,
         w: torch.Tensor,
-        fit_mask: torch.tensor,
+        fit_mask: torch.tensor,  # type: ignore
         pred_mask: torch.Tensor,
     ) -> torch.Tensor:
         # split sample
@@ -376,7 +376,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
         train_wrapper(temp_propensity_estimator, X_fit, W_fit)
 
         # predict propensity on hold out
-        return temp_propensity_estimator.get_importance_weights(X[pred_mask, :], w[pred_mask])
+        return temp_propensity_estimator.get_importance_weights(X[pred_mask, :], w[pred_mask])  # type: ignore
 
     def _impute_unconditional_mean(
         self,
@@ -442,7 +442,7 @@ class PWLearner(PseudoOutcomeLearner):
 
         mu0_pred, mu1_pred = np.nan, np.nan  # not needed
         p_pred = self._impute_propensity(X, w, fit_mask, pred_mask).squeeze()
-        return mu0_pred, mu1_pred, p_pred
+        return mu0_pred, mu1_pred, p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -472,7 +472,7 @@ class RALearner(PseudoOutcomeLearner):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu0_pred, mu1_pred = self._impute_pos(X, y, w, fit_mask, pred_mask)
         p_pred = np.nan  # not needed
-        return mu0_pred.squeeze(), mu1_pred.squeeze(), p_pred
+        return mu0_pred.squeeze(), mu1_pred.squeeze(), p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -504,7 +504,7 @@ class ULearner(PseudoOutcomeLearner):
         mu_pred = self._impute_unconditional_mean(X, y, fit_mask, pred_mask).squeeze()
         mu1_pred = np.nan  # only have one thing to impute here
         p_pred = self._impute_propensity(X, w, fit_mask, pred_mask).squeeze()
-        return mu_pred, mu1_pred, p_pred
+        return mu_pred, mu1_pred, p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -536,7 +536,7 @@ class RLearner(PseudoOutcomeLearner):
         mu_pred = self._impute_unconditional_mean(X, y, fit_mask, pred_mask).squeeze()
         mu1_pred = np.nan  # only have one thing to impute here
         p_pred = self._impute_propensity(X, w, fit_mask, pred_mask).squeeze()
-        return mu_pred, mu1_pred, p_pred
+        return mu_pred, mu1_pred, p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -579,7 +579,7 @@ class XLearner(PseudoOutcomeLearner):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu0_pred, mu1_pred = self._impute_pos(X, y, w, fit_mask, pred_mask)
         p_pred = np.nan
-        return mu0_pred.squeeze(), mu1_pred.squeeze(), p_pred
+        return mu0_pred.squeeze(), mu1_pred.squeeze(), p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -622,6 +622,6 @@ class XLearner(PseudoOutcomeLearner):
         tau0_pred = predict_wrapper(self._te_estimator_0, X)
         tau1_pred = predict_wrapper(self._te_estimator_1, X)
 
-        weight = self._propensity_estimator.get_importance_weights(X)
+        weight = self._propensity_estimator.get_importance_weights(X)  # type: ignore
 
         return weight * tau0_pred + (1 - weight) * tau1_pred

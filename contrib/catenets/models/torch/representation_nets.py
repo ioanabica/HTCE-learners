@@ -209,7 +209,7 @@ class BasicDragonNet(BaseCATEEstimator):
             + list(self._po_estimators[1].parameters())
             + list(self._propensity_estimator.parameters())
         )
-        optimizer = torch.optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)  # type: ignore
 
         # training
         val_loss_best = LARGE_VAL
@@ -289,7 +289,7 @@ class BasicDragonNet(BaseCATEEstimator):
         outcome = y1_preds - y0_preds
 
         if return_po:
-            return outcome, y0_preds, y1_preds
+            return outcome, y0_preds, y1_preds  # type: ignore
 
         return outcome
 
