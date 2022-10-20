@@ -6,8 +6,8 @@ import pandas as pd
 import logger as log
 from contrib.radial_gan.RadialGAN_treatment import RadialGAN_Treatment
 from data_processing.data_loader import load
+from learners import get_flex_transfer_learner, get_learner
 from simulate_dataset import SyntheticSimulatorLinear
-from learners import get_learner, get_flex_transfer_learner
 from utils import compute_pehe
 
 

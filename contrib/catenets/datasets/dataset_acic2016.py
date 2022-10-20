@@ -1,17 +1,18 @@
 """
 ACIC2016 dataset
 """
+import glob
+
 # stdlib
 import random
 from pathlib import Path
 from typing import Any, Tuple
-import glob
 
 # third party
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 import contrib.catenets.logger as log
 

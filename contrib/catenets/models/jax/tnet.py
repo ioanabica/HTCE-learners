@@ -28,7 +28,11 @@ from contrib.catenets.models.constants import (
     DEFAULT_VAL_SPLIT,
     LARGE_VAL,
 )
-from contrib.catenets.models.jax.base import BaseCATENet, OutputHead, train_output_net_only
+from contrib.catenets.models.jax.base import (
+    BaseCATENet,
+    OutputHead,
+    train_output_net_only,
+)
 from contrib.catenets.models.jax.model_utils import (
     check_shape_1d_data,
     heads_l2_penalty,

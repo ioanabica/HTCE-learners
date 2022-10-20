@@ -12,7 +12,12 @@ from contrib.catenets.models.jax.pseudo_outcome_nets import (
     PWNet,
     RANet,
 )
-from contrib.catenets.models.jax.representation_nets import DragonNet, SNet1, SNet2, TARNet
+from contrib.catenets.models.jax.representation_nets import (
+    DragonNet,
+    SNet1,
+    SNet2,
+    TARNet,
+)
 from contrib.catenets.models.jax.rnet import RNet
 from contrib.catenets.models.jax.snet import SNet
 from contrib.catenets.models.jax.tnet import TNet

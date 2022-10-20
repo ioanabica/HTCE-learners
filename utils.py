@@ -1,12 +1,9 @@
 import random
-import numpy as np
-
-from sklearn.metrics import mean_squared_error
-
-
 from typing import Any, Optional
 
+import numpy as np
 import torch
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
 from htce_learners.constants import DEFAULT_SEED, DEFAULT_VAL_SPLIT

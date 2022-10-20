@@ -1,6 +1,6 @@
 # stdlib
-from typing import Tuple
 from functools import reduce
+from typing import Tuple
 
 # third party
 import numpy as np

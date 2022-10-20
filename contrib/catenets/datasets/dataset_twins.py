@@ -18,7 +18,6 @@ import contrib.catenets.logger as log
 
 from .network import download_if_needed
 
-
 DATASET = "Twin_Data.csv.gz"
 URL = "https://bitbucket.org/mvdschaar/mlforhealthlabpub/raw/0b0190bcd38a76c405c805f1ca774971fcd85233/data/twins/Twin_Data.csv.gz"  # noqa: E501
 

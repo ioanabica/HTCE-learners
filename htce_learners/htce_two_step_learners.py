@@ -4,6 +4,9 @@ from typing import Optional, Tuple
 import torch
 from torch import nn
 
+from contrib.catenets.models.torch.utils.transformations import dr_transformation_cate
+from contrib.catenets.models.torch.utils.weight_utils import compute_importance_weights
+from htce_learners.base_htce_layers import DEVICE, HTCEBaseEstimator
 from htce_learners.constants import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_LAYERS_OUT,
@@ -21,12 +24,6 @@ from htce_learners.constants import (
     DEFAULT_UNITS_OUT_T,
     DEFAULT_VAL_SPLIT,
 )
-
-
-from contrib.catenets.models.torch.utils.weight_utils import compute_importance_weights
-from contrib.catenets.models.torch.utils.transformations import dr_transformation_cate
-
-from htce_learners.base_htce_layers import DEVICE, HTCEBaseEstimator
 from htce_learners.htce_one_step_learners import HTCE_TLearner
 
 

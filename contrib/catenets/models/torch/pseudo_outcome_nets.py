@@ -31,7 +31,10 @@ from contrib.catenets.models.torch.base import (
     BasicNet,
     PropensityNet,
 )
-from contrib.catenets.models.torch.utils.model_utils import predict_wrapper, train_wrapper
+from contrib.catenets.models.torch.utils.model_utils import (
+    predict_wrapper,
+    train_wrapper,
+)
 from contrib.catenets.models.torch.utils.transformations import (
     dr_transformation_cate,
     pw_transformation_cate,

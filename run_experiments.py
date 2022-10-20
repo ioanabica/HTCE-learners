@@ -3,7 +3,12 @@ import sys
 from typing import Any
 
 import logger as log
-from experiments import BaselineExperiment, POSharingExperiment, TargetDatasetSizeExperiment, SelectionBiasExperiment
+from experiments import (
+    BaselineExperiment,
+    POSharingExperiment,
+    SelectionBiasExperiment,
+    TargetDatasetSizeExperiment,
+)
 
 
 def init_arg() -> Any:

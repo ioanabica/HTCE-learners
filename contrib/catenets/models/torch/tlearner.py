@@ -16,7 +16,10 @@ from contrib.catenets.models.constants import (
     DEFAULT_VAL_SPLIT,
 )
 from contrib.catenets.models.torch.base import DEVICE, BaseCATEEstimator, BasicNet
-from contrib.catenets.models.torch.utils.model_utils import predict_wrapper, train_wrapper
+from contrib.catenets.models.torch.utils.model_utils import (
+    predict_wrapper,
+    train_wrapper,
+)
 
 
 class TLearner(BaseCATEEstimator):

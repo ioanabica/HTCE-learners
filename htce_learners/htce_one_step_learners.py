@@ -1,14 +1,18 @@
 import numpy as np
 import torch
 from torch import nn
-import contrib.catenets.logger as log
 
-from htce_learners.base_htce_layers import DEVICE, FlexTENetHTCE, SharedRepresentationNet, RepresentationNet
+import contrib.catenets.logger as log
+from htce_learners.base_htce_layers import (
+    DEVICE,
+    FlexTENetHTCE,
+    RepresentationNet,
+    SharedRepresentationNet,
+)
 from htce_learners.constants import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_LAYERS_R,
     DEFAULT_LAYERS_R_SHARED,
-    DEFAULT_UNITS_R_SHARED,
     DEFAULT_N_ITER,
     DEFAULT_N_ITER_MIN,
     DEFAULT_N_ITER_PRINT,
@@ -18,10 +22,11 @@ from htce_learners.constants import (
     DEFAULT_SEED,
     DEFAULT_STEP_SIZE,
     DEFAULT_UNITS_R,
+    DEFAULT_UNITS_R_SHARED,
     DEFAULT_VAL_SPLIT,
     LARGE_VAL,
 )
-from utils import make_target_val_split, flatten, check_tensor
+from utils import check_tensor, flatten, make_target_val_split
 
 EPS = 1e-8
 

@@ -1,7 +1,9 @@
 import contrib.catenets.models as cate_models
-
-from htce_learners.htce_one_step_learners import HTCE_TLearner, HTCE_SLearner, HTCE_TARNet
-
+from htce_learners.htce_one_step_learners import (
+    HTCE_SLearner,
+    HTCE_TARNet,
+    HTCE_TLearner,
+)
 from htce_learners.htce_two_step_learners import HTCE_DRLearner
 
 

@@ -1,4 +1,5 @@
 import numpy as np
+
 from contrib.catenets.datasets import load as catenets_load
 
 

@@ -10,11 +10,12 @@ Inputs:
   - FSet: Which features are selected for which group
 
 """
-# %% Necessary packages
-import logger as log
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+
+# %% Necessary packages
+import logger as log
 
 
 # %% RadialGAN
