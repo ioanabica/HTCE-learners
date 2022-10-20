@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -189,10 +190,11 @@ class BaselineExperiment:
         dataset="tcga",
         train_ratio=0.8,
         binary_outcome=False,
-        learner_names_list=["TLearner"],
-        methods_list=["target"],
+        learner_names_list=("TLearner",),
+        methods_list=("target",),
         experiment_id=0,
     ) -> None:
+        learner_names_list, methods_list = list(learner_names_list), list(methods_list)
         log.info(f"Using dataset {dataset} with learners = {learner_names_list} and methods = {methods_list}.")
 
         X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio)
@@ -277,11 +279,12 @@ class POSharingExperiment(BaselineExperiment):
         self,
         n_iter: int = 1000,
         seed: int = 42,
-        po_sharing_scales_list: list = [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0],
+        po_sharing_scales_list: Union[list, tuple] = (0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0),
         sharing_across_domains=True,
         save_path: Path = Path.cwd(),
         synthetic_simulator_type: str = "linear",
     ) -> None:
+        po_sharing_scales_list = list(po_sharing_scales_list)
         super(BaselineExperiment, self).__init__()
 
         self.n_iter = n_iter
@@ -297,10 +300,11 @@ class POSharingExperiment(BaselineExperiment):
         dataset="tcga",
         train_ratio=0.8,
         binary_outcome=False,
-        learner_names_list=["TLearner"],
-        methods_list=["target"],
+        learner_names_list=("TLearner",),
+        methods_list=("target",),
         experiment_id=0,
     ) -> None:
+        learner_names_list, methods_list = list(learner_names_list), list(methods_list)
         log.info(f"Using dataset {dataset} with learners = {learner_names_list} and methods = {methods_list}.")
 
         X_train, X_test = load(dataset, self.seed, train_ratio=train_ratio)
@@ -409,10 +413,11 @@ class TargetDatasetSizeExperiment(BaselineExperiment):
         self,
         n_iter: int = 1000,
         seed: int = 42,
-        target_dataset_size_list: list = [50, 100, 200, 300, 500, 1000, 2000, 4000, 6000, 8000],
+        target_dataset_size_list: Union[list, tuple] = (50, 100, 200, 300, 500, 1000, 2000, 4000, 6000, 8000),
         save_path: Path = Path.cwd(),
         synthetic_simulator_type: str = "linear",
     ) -> None:
+        target_dataset_size_list = list(target_dataset_size_list)
         super(BaselineExperiment, self).__init__()
 
         self.n_iter = n_iter
@@ -427,10 +432,11 @@ class TargetDatasetSizeExperiment(BaselineExperiment):
         dataset="tcga",
         train_ratio=0.8,
         binary_outcome=False,
-        learner_names_list=["TLearner"],
-        methods_list=["target"],
+        learner_names_list=("TLearner",),
+        methods_list=("target",),
         experiment_id=0,
     ) -> None:
+        learner_names_list, methods_list = list(learner_names_list), list(methods_list)
         log.info(f"Using dataset {dataset} with learners = {learner_names_list} and methods = {methods_list}.")
 
         all_metrics_df = []
@@ -526,11 +532,13 @@ class SelectionBiasExperiment(BaselineExperiment):
         self,
         n_iter: int = 1000,
         seed: int = 42,
-        selection_bias_source_list: list = [0, 2, 10],
-        selection_bias_target_list: list = [0, 0.5, 1, 2, 5, 10],
+        selection_bias_source_list: Union[list, tuple] = (0, 2, 10),
+        selection_bias_target_list: Union[list, tuple] = (0, 0.5, 1, 2, 5, 10),
         save_path: Path = Path.cwd(),
         synthetic_simulator_type: str = "linear",
     ) -> None:
+        selection_bias_source_list = list(selection_bias_source_list)
+        selection_bias_target_list = list(selection_bias_target_list)
         super(BaselineExperiment, self).__init__()
 
         self.n_iter = n_iter
@@ -546,10 +554,11 @@ class SelectionBiasExperiment(BaselineExperiment):
         dataset="tcga",
         train_ratio=0.8,
         binary_outcome=False,
-        learner_names_list=["TLearner"],
-        methods_list=["target"],
+        learner_names_list=("TLearner",),
+        methods_list=("target",),
         experiment_id=0,
     ) -> None:
+        learner_names_list, methods_list = list(learner_names_list), list(methods_list)
         log.info(f"Using dataset {dataset} with learners = {learner_names_list} and methods = {methods_list}.")
 
         all_metrics_df = []
