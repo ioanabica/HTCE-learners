@@ -23,7 +23,7 @@ def add(
     sink = DEFAULT_SINK if sink is None else sink
     try:
         logger.add(
-            sink=sink,
+            sink=sink,  # type: ignore
             format=LOG_FORMAT,
             enqueue=True,
             colorize=False,
@@ -33,7 +33,7 @@ def add(
             retention="1 day",
             level=level,
         )
-    except BaseException:
+    except BaseException:  # pylint: disable=broad-except
         logger.add(
             sink=sink,
             format=LOG_FORMAT,
@@ -50,7 +50,7 @@ def traceback_and_raise(e: Any, verbose: bool = False) -> NoReturn:
             logger.opt(lazy=True).exception(e)
         else:
             logger.opt(lazy=True).critical(e)
-    except BaseException as ex:
+    except BaseException as ex:  # pylint: disable=broad-except
         print("failed to print exception", ex)
     if not issubclass(type(e), Exception):
         e = Exception(e)
@@ -65,11 +65,11 @@ def create_log_and_print_function(level: str) -> Callable:
                 method(*args, **kwargs)
             else:
                 logger.debug(*args, **kwargs)
-        except BaseException as e:
+        except BaseException as e:  # pylint: disable=broad-except
             msg = f"failed to log exception. {e}"
             try:
                 logger.debug(msg)
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 print(f"{msg}. {e}")
 
     return log_and_print

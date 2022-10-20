@@ -76,7 +76,7 @@ if __name__ == "__main__":
         for experiment_id in range(len(args.dataset_list)):
             log.info(f"Running experiment for {args.dataset_list[experiment_id]}")
 
-            exp.run(
+            exp.run(  # type: ignore
                 dataset=args.dataset_list[experiment_id],
                 train_ratio=args.train_ratio,
                 methods_list=args.methods_list,

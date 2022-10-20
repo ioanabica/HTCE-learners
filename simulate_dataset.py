@@ -1,5 +1,4 @@
 # stdlib
-from functools import reduce
 from typing import Tuple
 
 # third party
@@ -10,7 +9,7 @@ from scipy.stats import zscore
 
 from utils import enable_reproducible_results
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # type: ignore
 
 
 class SyntheticSimulatorBase:

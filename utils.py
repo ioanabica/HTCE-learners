@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 
 from htce_learners.constants import DEFAULT_SEED, DEFAULT_VAL_SPLIT
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # type: ignore
 
 TRAIN_STRING = "training"
 VALIDATION_STRING = "validation"
@@ -36,6 +36,7 @@ def make_target_val_split(
 ) -> Any:
     if val_split_prop == 0:
         # return original data
+        X = None
         if w is None:
             return X_target_specific, X_target_shared, y, X, y, TRAIN_STRING
 
@@ -57,12 +58,12 @@ def make_target_val_split(
             X_target_specific, X_target_shared, y, test_size=val_split_prop, random_state=seed, shuffle=True
         )
         return (
-            X_target_specific_t.to(DEVICE),
-            X_target_shared_t.to(DEVICE),
-            y_t.to(DEVICE),
-            X_target_specific_val.to(DEVICE),
-            X_target_shared_val.to(DEVICE),
-            y_val.to(DEVICE),
+            X_target_specific_t.to(DEVICE),  # type: ignore
+            X_target_shared_t.to(DEVICE),  # type: ignore
+            y_t.to(DEVICE),  # type: ignore
+            X_target_specific_val.to(DEVICE),  # type: ignore
+            X_target_shared_val.to(DEVICE),  # type: ignore
+            y_val.to(DEVICE),  # type: ignore
             VALIDATION_STRING,
         )
 
@@ -103,14 +104,14 @@ def make_target_val_split(
         )
 
     return (
-        X_target_specific_t.to(DEVICE),
-        X_target_shared_t.to(DEVICE),
-        y_t.to(DEVICE),
-        w_t.to(DEVICE),
-        X_target_specific_val.to(DEVICE),
-        X_target_shared_val.to(DEVICE),
-        y_val.to(DEVICE),
-        w_val.to(DEVICE),
+        X_target_specific_t.to(DEVICE),  # type: ignore
+        X_target_shared_t.to(DEVICE),  # type: ignore
+        y_t.to(DEVICE),  # type: ignore
+        w_t.to(DEVICE),  # type: ignore
+        X_target_specific_val.to(DEVICE),  # type: ignore
+        X_target_shared_val.to(DEVICE),  # type: ignore
+        y_val.to(DEVICE),  # type: ignore
+        w_val.to(DEVICE),  # type: ignore
         VALIDATION_STRING,
     )
 
