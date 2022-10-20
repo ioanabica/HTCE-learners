@@ -303,9 +303,7 @@ def _train_tnet_jointly(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
-        X, y, w, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get output head functions (both heads share same structure)
@@ -322,9 +320,7 @@ def _train_tnet_jointly(
     # loss functions for the head
     if not binary_y:
 
-        def loss_head(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
-        ) -> jnp.ndarray:
+        def loss_head(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> jnp.ndarray:
             # mse loss function
             inputs, targets, weights = batch
             preds = predict_fun_head(params, inputs)
@@ -332,16 +328,11 @@ def _train_tnet_jointly(
 
     else:
 
-        def loss_head(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
-        ) -> jnp.ndarray:
+        def loss_head(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> jnp.ndarray:
             # mse loss function
             inputs, targets, weights = batch
             preds = predict_fun_head(params, inputs)
-            return -jnp.sum(
-                weights
-                * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-            )
+            return -jnp.sum(weights * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)))
 
     @jit
     def loss_tnet(
@@ -377,14 +368,10 @@ def _train_tnet_jointly(
     opt_init, opt_update, get_params = optimizers.adam(step_size=step_size)
 
     @jit
-    def update(
-        i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_diff: float
-    ) -> jnp.ndarray:
+    def update(i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_diff: float) -> jnp.ndarray:
         # updating function
         params = get_params(state)
-        return opt_update(
-            i, grad(loss_tnet)(params, batch, penalty_l2, penalty_diff), state
-        )
+        return opt_update(i, grad(loss_tnet)(params, batch, penalty_l2, penalty_diff), state)
 
     # initialise states
     if same_init:
@@ -411,19 +398,13 @@ def _train_tnet_jointly(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :], w[idx_next]
-            opt_state = update(
-                i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_diff
-            )
+            opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_diff)
 
         if (i % n_iter_print == 0) or early_stopping:
             params_curr = get_params(opt_state)
-            l_curr = loss_tnet(
-                params_curr, (X_val, y_val, w_val), penalty_l2, penalty_diff
-            )
+            l_curr = loss_tnet(params_curr, (X_val, y_val, w_val), penalty_l2, penalty_diff)
 
         if i % n_iter_print == 0:
             log.debug(f"Epoch: {i}, current {val_string} loss {l_curr}")

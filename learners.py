@@ -1,17 +1,14 @@
 import contrib.catenets.models as cate_models
 
-from htce_learners.htce_one_step_learners import (HTCE_TLearner,
-                                                  HTCE_SLearner,
-                                                  HTCE_TARNet)
+from htce_learners.htce_one_step_learners import HTCE_TLearner, HTCE_SLearner, HTCE_TARNet
 
 from htce_learners.htce_two_step_learners import HTCE_DRLearner
-
 
 
 def get_flex_transfer_learner(name, X_shared_size, X_source_specific_size, X_target_specific_size, binary_Y, n_iter):
     transfer_learner = {
         "TLearner": HTCE_TLearner(
-            'TLearner',
+            "TLearner",
             n_unit_in_shared=X_shared_size,
             n_unit_in_source_specific=X_source_specific_size,
             n_unit_in_target_specific=X_target_specific_size,
@@ -21,7 +18,7 @@ def get_flex_transfer_learner(name, X_shared_size, X_source_specific_size, X_tar
             nonlin="relu",
         ),
         "SLearner": HTCE_SLearner(
-            'SLearner',
+            "SLearner",
             n_unit_in_shared=X_shared_size,
             n_unit_in_source_specific=X_source_specific_size,
             n_unit_in_target_specific=X_target_specific_size,
@@ -31,7 +28,7 @@ def get_flex_transfer_learner(name, X_shared_size, X_source_specific_size, X_tar
             nonlin="relu",
         ),
         "TARNet": HTCE_TARNet(
-            'TARNet',
+            "TARNet",
             n_unit_in_shared=X_shared_size,
             n_unit_in_source_specific=X_source_specific_size,
             n_unit_in_target_specific=X_target_specific_size,
@@ -42,7 +39,7 @@ def get_flex_transfer_learner(name, X_shared_size, X_source_specific_size, X_tar
             nonlin="relu",
         ),
         "DRLearner": HTCE_DRLearner(
-            'DRLearner',
+            "DRLearner",
             n_unit_in_shared=X_shared_size,
             n_unit_in_source_specific=X_source_specific_size,
             n_unit_in_target_specific=X_target_specific_size,
@@ -54,7 +51,6 @@ def get_flex_transfer_learner(name, X_shared_size, X_source_specific_size, X_tar
     }
 
     return transfer_learner[name]
-
 
 
 def get_learner(name, X_size, binary_Y, n_iter):

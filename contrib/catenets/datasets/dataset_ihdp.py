@@ -202,18 +202,7 @@ def load(data_path: Path, exp: int = 1, rescale: bool = False, **kwargs: Any) ->
     data_exp = get_one_data_set(data_train, i_exp=exp, get_po=True)
     data_exp_test = get_one_data_set(data_test, i_exp=exp, get_po=True)
 
-    (
-        X,
-        y,
-        w,
-        cate_true_in,
-        X_t,
-        cate_true_out,
-        mu0,
-        mu1,
-        mu0_t,
-        mu1_t,
-    ) = prepare_ihdp_data(
+    (X, y, w, cate_true_in, X_t, cate_true_out, mu0, mu1, mu0_t, mu1_t,) = prepare_ihdp_data(
         data_exp,
         data_exp_test,
         rescale=rescale,

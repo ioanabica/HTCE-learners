@@ -97,7 +97,7 @@ class BasicNet(nn.Module):
         n_iter_min: int = DEFAULT_N_ITER_MIN,
         clipping_value: int = 1,
         batch_norm: bool = True,
-        early_stopping: bool = True
+        early_stopping: bool = True,
     ) -> None:
         super(BasicNet, self).__init__()
 
@@ -155,23 +155,17 @@ class BasicNet(nn.Module):
         self.clipping_value = clipping_value
         self.early_stopping = early_stopping
 
-        self.optimizer = torch.optim.Adam(
-            self.parameters(), lr=lr, weight_decay=weight_decay
-        )
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         return self.model(X)
 
-    def train(
-        self, X: torch.Tensor, y: torch.Tensor, weight: Optional[torch.Tensor] = None
-    ) -> "BasicNet":
+    def train(self, X: torch.Tensor, y: torch.Tensor, weight: Optional[torch.Tensor] = None) -> "BasicNet":
         X = self._check_tensor(X)
         y = self._check_tensor(y).squeeze()
 
         # get validation split (can be none)
-        X, y, X_val, y_val, val_string = make_val_split(
-            X, y, val_split_prop=self.val_split_prop, seed=self.seed
-        )
+        X, y, X_val, y_val, val_string = make_val_split(X, y, val_split_prop=self.val_split_prop, seed=self.seed)
         y_val = y_val.squeeze()
         n = X.shape[0]  # could be different from before due to split
 
@@ -190,9 +184,7 @@ class BasicNet(nn.Module):
             for b in range(n_batches):
                 self.optimizer.zero_grad()
 
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
 
                 X_next = X[idx_next]
                 y_next = y[idx_next]
@@ -269,7 +261,7 @@ class RepresentationNet(nn.Module):
         n_layers: int = DEFAULT_LAYERS_R,
         n_units: int = DEFAULT_UNITS_R,
         nonlin: str = DEFAULT_NONLIN,
-        batch_norm: bool = True
+        batch_norm: bool = True,
     ) -> None:
         super(RepresentationNet, self).__init__()
         if nonlin not in list(NONLIN.keys()):
@@ -357,7 +349,7 @@ class PropensityNet(nn.Module):
         n_iter_min: int = DEFAULT_N_ITER_MIN,
         clipping_value: int = 1,
         batch_norm: bool = True,
-        early_stopping: bool = True
+        early_stopping: bool = True,
     ) -> None:
         super(PropensityNet, self).__init__()
         if nonlin not in list(NONLIN.keys()):
@@ -367,9 +359,9 @@ class PropensityNet(nn.Module):
 
         if batch_norm:
             layers = [
-            nn.Linear(in_features=n_unit_in, out_features=n_units_out_prop),
-            nn.BatchNorm1d(n_units_out_prop),
-            NL(),
+                nn.Linear(in_features=n_unit_in, out_features=n_units_out_prop),
+                nn.BatchNorm1d(n_units_out_prop),
+                NL(),
             ]
         else:
             layers = [
@@ -380,20 +372,17 @@ class PropensityNet(nn.Module):
         for i in range(n_layers_out_prop - 1):
             if batch_norm:
                 layers.extend(
-                [
-                    nn.Linear(
-                        in_features=n_units_out_prop, out_features=n_units_out_prop
-                    ),
-                    nn.BatchNorm1d(n_units_out_prop),
-                    NL(),
-                ]
-            )
+                    [
+                        nn.Linear(in_features=n_units_out_prop, out_features=n_units_out_prop),
+                        nn.BatchNorm1d(n_units_out_prop),
+                        NL(),
+                    ]
+                )
             else:
                 layers.extend(
                     [
-                        nn.Linear(
-                            in_features=n_units_out_prop, out_features=n_units_out_prop
-                        ),NL(),
+                        nn.Linear(in_features=n_units_out_prop, out_features=n_units_out_prop),
+                        NL(),
                     ]
                 )
         layers.extend(
@@ -416,16 +405,12 @@ class PropensityNet(nn.Module):
         self.clipping_value = clipping_value
         self.early_stopping = early_stopping
 
-        self.optimizer = torch.optim.Adam(
-            self.parameters(), lr=lr, weight_decay=weight_decay
-        )
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         return self.model(X)
 
-    def get_importance_weights(
-        self, X: torch.Tensor, w: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def get_importance_weights(self, X: torch.Tensor, w: Optional[torch.Tensor] = None) -> torch.Tensor:
         p_pred = self.forward(X).squeeze()[:, 1]
         return compute_importance_weights(p_pred, w, self.weighting_strategy, {})
 
@@ -437,9 +422,7 @@ class PropensityNet(nn.Module):
         y = self._check_tensor(y).long()
 
         # get validation split (can be none)
-        X, y, X_val, y_val, val_string = make_val_split(
-            X, y, val_split_prop=self.val_split_prop, seed=self.seed
-        )
+        X, y, X_val, y_val, val_string = make_val_split(X, y, val_split_prop=self.val_split_prop, seed=self.seed)
         y_val = y_val.squeeze()
         n = X.shape[0]  # could be different from before due to split
 
@@ -458,9 +441,7 @@ class PropensityNet(nn.Module):
             for b in range(n_batches):
                 self.optimizer.zero_grad()
 
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
 
                 X_next = X[idx_next]
                 y_next = y[idx_next].squeeze()

@@ -214,9 +214,7 @@ def train_flextenet(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
-        X, y, w, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get output head
@@ -292,19 +290,9 @@ def train_flextenet(
                 mode,
             )
             if not avg_objective:
-                return (
-                    -jnp.sum(
-                        targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)
-                    )
-                    + penalty
-                )
+                return -jnp.sum(targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)) + penalty
             else:
-                return (
-                    -jnp.average(
-                        targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)
-                    )
-                    + penalty
-                )
+                return -jnp.average(targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)) + penalty
 
     # set optimization routine
     # set optimizer
@@ -327,9 +315,7 @@ def train_flextenet(
         mode: int,
     ) -> jnp.ndarray:
         params = get_params(state)
-        g_params = grad(loss)(
-            params, batch, penalty_l2, penalty_l2_p, penalty_orthogonal, mode
-        )
+        g_params = grad(loss)(params, batch, penalty_l2, penalty_l2_p, penalty_orthogonal, mode)
         return opt_update(i, g_params, state)
 
     # initialise states
@@ -350,9 +336,7 @@ def train_flextenet(
             # shuffle data for minibatches
             onp.random.shuffle(train_indices)
             for b in range(n_batches):
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
                 next_batch = (X[idx_next, :], w[idx_next]), y[idx_next, :]
                 opt_state = update(
                     i * n_batches + b,
@@ -391,9 +375,7 @@ def train_flextenet(
 
                     if return_val_loss:
                         # return loss without penalty
-                        l_final = loss(
-                            trained_params, ((X_val, w_val), y_val), 0, 0, 0, mode=1
-                        )
+                        l_final = loss(trained_params, ((X_val, w_val), y_val), 0, 0, 0, mode=1)
                         return trained_params, predict_fun, l_final
 
                     return trained_params, predict_fun
@@ -413,9 +395,7 @@ def train_flextenet(
             # shuffle data for minibatches
             onp.random.shuffle(train_indices)
             for b in range(n_batches):
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
                 next_batch = (X[idx_next, :], w[idx_next]), y[idx_next, :]
                 opt_state = update(
                     i * n_batches + b,
@@ -439,9 +419,7 @@ def train_flextenet(
                 )
 
             if i % n_iter_print == 0:
-                log.debug(
-                    f"Pre-training epoch: {i}, current {val_string} loss: {l_curr}"
-                )
+                log.debug(f"Pre-training epoch: {i}, current {val_string} loss: {l_curr}")
 
             if early_stopping and ((i + 1) * n_batches > n_iter_min):
                 # check if loss updated
@@ -460,13 +438,9 @@ def train_flextenet(
         # Step 2: train also private parts of network (mode=1)
         # set new optimizer
         if opt == "adam":
-            opt_init2, opt_update2, get_params2 = optimizers.adam(
-                step_size=step_size / lr_scale
-            )
+            opt_init2, opt_update2, get_params2 = optimizers.adam(step_size=step_size / lr_scale)
         elif opt == "sgd":
-            opt_init2, opt_update2, get_params2 = optimizers.sgd(
-                step_size=step_size / lr_scale
-            )
+            opt_init2, opt_update2, get_params2 = optimizers.sgd(step_size=step_size / lr_scale)
         else:
             raise ValueError("opt should be adam or sgd")
 
@@ -482,9 +456,7 @@ def train_flextenet(
             mode: int,
         ) -> Any:
             params = get_params(state)
-            g_params = grad(loss)(
-                params, batch, penalty_l2, penalty_l2_p, penalty_orthogonal, mode
-            )
+            g_params = grad(loss)(params, batch, penalty_l2, penalty_l2_p, penalty_orthogonal, mode)
             return opt_update2(i, g_params, state)
 
         opt_state = opt_init2(pre_trained_params)
@@ -496,9 +468,7 @@ def train_flextenet(
             # shuffle data for minibatches
             onp.random.shuffle(train_indices)
             for b in range(n_batches):
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
                 next_batch = (X[idx_next, :], w[idx_next]), y[idx_next, :]
                 opt_state = update2(
                     i * n_batches + b,
@@ -537,9 +507,7 @@ def train_flextenet(
 
                     if return_val_loss:
                         # return loss without penalty
-                        l_final = loss(
-                            trained_params, ((X_val, w_val), y_val), 0, 0, 0, mode=1
-                        )
+                        l_final = loss(trained_params, ((X_val, w_val), y_val), 0, 0, 0, mode=1)
                         return trained_params, predict_fun, l_final
 
                     return trained_params, predict_fun
@@ -584,9 +552,7 @@ def predict_flextenet(
 
 
 # helper functions for training
-def _get_cos_reg(
-    params_0: jnp.ndarray, params_1: jnp.ndarray, normalize: bool
-) -> jnp.ndarray:
+def _get_cos_reg(params_0: jnp.ndarray, params_1: jnp.ndarray, normalize: bool) -> jnp.ndarray:
     if normalize:
         params_0 = params_0 / jnp.linalg.norm(params_0, axis=0)
         params_1 = params_1 / jnp.linalg.norm(params_1, axis=0)
@@ -610,9 +576,7 @@ def _compute_ortho_penalty_asymmetric(
     else:
         lb = 0
 
-    n_in = [
-        params[i][0][0].shape[0] for i in range(lb, 2 * (n_layers_out + n_layers_r), 2)
-    ]
+    n_in = [params[i][0][0].shape[0] for i in range(lb, 2 * (n_layers_out + n_layers_r), 2)]
 
     ortho_body = _get_cos_reg(params[lb][1][0], params[lb][2][0], normalize_ortho)
     ortho_body = ortho_body + sum(
@@ -643,9 +607,7 @@ def _compute_ortho_penalty_asymmetric(
                 params[idx_out][1][0][:n_idx, :],
                 normalize_ortho,
             )
-            + _get_cos_reg(
-                params[idx_out][0][0], params[idx_out][2][0][:n_idx, :], normalize_ortho
-            )
+            + _get_cos_reg(params[idx_out][0][0], params[idx_out][2][0][:n_idx, :], normalize_ortho)
         )
 
     return mode * penalty_orthogonal * ortho_body
@@ -666,43 +628,23 @@ def _compute_penalty_l2(
     # compute l2 penalty
     if shared_repr:
         # get representation and then heads
-        weightsq_body = penalty_l2 * sum(
-            [jnp.sum(params[i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]
-        )
+        weightsq_body = penalty_l2 * sum([jnp.sum(params[i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)])
         weightsq_body = weightsq_body + penalty_l2 * sum(
-            [
-                jnp.sum(params[i][0][0] ** 2)
-                for i in range(2 * n_layers_r, 2 * (n_layers_out + n_layers_r), 2)
-            ]
+            [jnp.sum(params[i][0][0] ** 2) for i in range(2 * n_layers_r, 2 * (n_layers_out + n_layers_r), 2)]
         )
         weightsq_body = weightsq_body + penalty_l2_p * mode * sum(
             [
-                sum(
-                    [
-                        jnp.sum(params[i][j][0] ** 2)
-                        for i in range(
-                            2 * n_layers_r, 2 * (n_layers_out + n_layers_r), 2
-                        )
-                    ]
-                )
+                sum([jnp.sum(params[i][j][0] ** 2) for i in range(2 * n_layers_r, 2 * (n_layers_out + n_layers_r), 2)])
                 for j in range(1, n_bodys)
             ]
         )
     else:
         weightsq_body = penalty_l2 * sum(
-            [
-                jnp.sum(params[i][0][0] ** 2)
-                for i in range(0, 2 * (n_layers_out + n_layers_r), 2)
-            ]
+            [jnp.sum(params[i][0][0] ** 2) for i in range(0, 2 * (n_layers_out + n_layers_r), 2)]
         )
         weightsq_body = weightsq_body + penalty_l2_p * mode * sum(
             [
-                sum(
-                    [
-                        jnp.sum(params[i][j][0] ** 2)
-                        for i in range(0, 2 * (n_layers_out + n_layers_r), 2)
-                    ]
-                )
+                sum([jnp.sum(params[i][j][0] ** 2) for i in range(0, 2 * (n_layers_out + n_layers_r), 2)])
                 for j in range(1, n_bodys)
             ]
         )
@@ -710,9 +652,7 @@ def _compute_penalty_l2(
     idx_out = 2 * (n_layers_r + n_layers_out)
     if private_out:
         weightsq = (
-            weightsq_body
-            + penalty_l2 * jnp.sum(params[idx_out][0][0] ** 2)
-            + jnp.sum(params[idx_out][1][0] ** 2)
+            weightsq_body + penalty_l2 * jnp.sum(params[idx_out][0][0] ** 2) + jnp.sum(params[idx_out][1][0] ** 2)
         )
     else:
         weightsq = (
@@ -764,9 +704,7 @@ def _compute_penalty(
 
 # ------------------------------------------------------------
 # construction of FlexTENetlayers/architecture
-def SplitLayerAsymmetric(
-    n_units_s: int, n_units_p: int, first_layer: bool = False, same_init: bool = True
-) -> Tuple:
+def SplitLayerAsymmetric(n_units_s: int, n_units_p: int, first_layer: bool = False, same_init: bool = True) -> Tuple:
     # create multitask layer has shape [shared, private_0, private_1]
     init_s, apply_s = Dense(n_units_s)
     init_p, apply_p = Dense(n_units_p)
@@ -873,8 +811,7 @@ def FlexTENetArchitecture(
 ) -> Any:
     if n_layers_out < 1:
         raise ValueError(
-            "FlexTENet needs at least one hidden output layer (else there are no "
-            "parameters to be shared)"
+            "FlexTENet needs at least one hidden output layer (else there are no " "parameters to be shared)"
         )
 
     Nonlin_Elu = Elu_parallel
@@ -914,9 +851,7 @@ def FlexTENetArchitecture(
     first_layer = (has_body is False) | (shared_repr is True)
     layers = (
         *layers,
-        Layer(
-            n_units_s_out, n_units_p_out, first_layer=first_layer, same_init=same_init
-        ),
+        Layer(n_units_s_out, n_units_p_out, first_layer=first_layer, same_init=same_init),
         Nonlin_Elu,
     )
 
@@ -980,9 +915,7 @@ def elementwise_parallel(fun: Callable, **fun_kwargs: Any) -> Tuple:
 Elu_parallel = elementwise_parallel(elu)
 
 
-def DenseW(
-    out_dim: int, W_init: Callable = glorot_normal(), b_init: Callable = normal()
-) -> Tuple:
+def DenseW(out_dim: int, W_init: Callable = glorot_normal(), b_init: Callable = normal()) -> Tuple:
     """Layer constructor function for a dense (fully-connected) layer. Adapted to allow passing
     treatment indicator through layer without using it"""
 
@@ -992,9 +925,7 @@ def DenseW(
         W, b = W_init(k1, (input_shape[-1], out_dim)), b_init(k2, (out_dim,))
         return output_shape, (W, b)
 
-    def apply_fun(
-        params: jnp.ndarray, inputs: jnp.ndarray, **kwargs: Any
-    ) -> jnp.ndarray:
+    def apply_fun(params: jnp.ndarray, inputs: jnp.ndarray, **kwargs: Any) -> jnp.ndarray:
         W, b = params
         x, t = inputs
         return (jnp.dot(x, W) + b, t)

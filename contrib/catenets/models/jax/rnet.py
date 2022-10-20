@@ -135,7 +135,7 @@ class RNet(BaseCATENet):
         n_iter_print: int = DEFAULT_N_ITER_PRINT,
         seed: int = DEFAULT_SEED,
         nonlin: str = DEFAULT_NONLIN,
-        binary_y: bool = False
+        binary_y: bool = False,
     ) -> None:
         # settings
         self.binary_y = binary_y
@@ -195,14 +195,10 @@ class RNet(BaseCATENet):
         # Two step nets do not need this
         pass
 
-    def predict(
-        self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False
-    ) -> jnp.ndarray:
+    def predict(self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False) -> jnp.ndarray:
         # check input
         if return_po:
-            raise NotImplementedError(
-                "TwoStepNets have no Potential outcome predictors."
-            )
+            raise NotImplementedError("TwoStepNets have no Potential outcome predictors.")
 
         if return_prop:
             raise NotImplementedError("TwoStepNets have no Propensity predictors.")
@@ -243,7 +239,7 @@ def train_r_net(
     seed: int = DEFAULT_SEED,
     return_val_loss: bool = False,
     nonlin: str = DEFAULT_NONLIN,
-    binary_y: bool = False
+    binary_y: bool = False,
 ) -> Any:
     # get shape of data
     n, d = X.shape
@@ -288,7 +284,7 @@ def train_r_net(
             n_iter_print=n_iter_print,
             seed=seed,
             nonlin=nonlin,
-            binary_y=binary_y
+            binary_y=binary_y,
         )
         if data_split:
             # keep only prediction data
@@ -333,7 +329,7 @@ def train_r_net(
                 n_iter_print=n_iter_print,
                 seed=seed,
                 nonlin=nonlin,
-                binary_y=binary_y
+                binary_y=binary_y,
             )
 
     log.debug("Training second stage.")
@@ -415,7 +411,7 @@ def _train_and_predict_r_stage1(
     n_iter_print: int = DEFAULT_N_ITER_PRINT,
     seed: int = DEFAULT_SEED,
     nonlin: str = DEFAULT_NONLIN,
-    binary_y: bool = False
+    binary_y: bool = False,
 ) -> Any:
     if len(w.shape) > 1:
         w = w.reshape((len(w),))
@@ -443,7 +439,7 @@ def _train_and_predict_r_stage1(
         n_iter_print=n_iter_print,
         seed=seed,
         nonlin=nonlin,
-        binary_y=binary_y
+        binary_y=binary_y,
     )
     mu_hat = predict_fun_out(params_out, X_pred)
 
@@ -524,22 +520,11 @@ def train_r_stage2(
         # mse loss function
         inputs, ortho_targets, ortho_treats = batch
         preds = predict_fun(params, inputs)
-        weightsq = sum(
-            [
-                jnp.sum(params[i][0] ** 2)
-                for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)
-            ]
-        )
+        weightsq = sum([jnp.sum(params[i][0] ** 2) for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)])
         if not avg_objective:
-            return (
-                jnp.sum((ortho_targets - ortho_treats * preds) ** 2)
-                + 0.5 * penalty * weightsq
-            )
+            return jnp.sum((ortho_targets - ortho_treats * preds) ** 2) + 0.5 * penalty * weightsq
         else:
-            return (
-                jnp.average((ortho_targets - ortho_treats * preds) ** 2)
-                + 0.5 * penalty * weightsq
-            )
+            return jnp.average((ortho_targets - ortho_treats * preds) ** 2) + 0.5 * penalty * weightsq
 
     # set optimization routine
     # set optimizer
@@ -570,9 +555,7 @@ def train_r_stage2(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y_ortho[idx_next, :], w_ortho[idx_next, :]
             opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2)
 

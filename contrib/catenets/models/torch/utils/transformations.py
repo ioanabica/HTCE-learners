@@ -107,9 +107,7 @@ def ra_transformation_cate(
     return w * (y - mu_0) + (1 - w) * (mu_1 - y)
 
 
-def u_transformation_cate(
-    y: torch.Tensor, w: torch.Tensor, p: torch.Tensor, mu: torch.Tensor
-) -> torch.Tensor:
+def u_transformation_cate(y: torch.Tensor, w: torch.Tensor, p: torch.Tensor, mu: torch.Tensor) -> torch.Tensor:
     """
     Transform data to U-transformation (described in Kuenzel et al, 2019, Nie & Wager, 2017)
     which underlies both R-learner and U-learner

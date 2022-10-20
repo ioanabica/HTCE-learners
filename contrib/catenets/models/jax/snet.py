@@ -234,18 +234,12 @@ def train_snet(
         penalty_diff = penalty_l2
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
-        X, y, w, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get representation layers
-    init_fun_repr, predict_fun_repr = ReprBlock(
-        n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin
-    )
-    init_fun_repr_small, predict_fun_repr_small = ReprBlock(
-        n_layers=n_layers_r, n_units=n_units_r_small, nonlin=nonlin
-    )
+    init_fun_repr, predict_fun_repr = ReprBlock(n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin)
+    init_fun_repr_small, predict_fun_repr_small = ReprBlock(n_layers=n_layers_r, n_units=n_units_r_small, nonlin=nonlin)
 
     # get output head functions (output heads share same structure)
     init_fun_head_po, predict_fun_head_po = OutputHead(
@@ -270,9 +264,7 @@ def train_snet(
         rng, layer_rng = random.split(rng)
         input_shape_repr, param_repr_c = init_fun_repr(layer_rng, input_shape)
         rng, layer_rng = random.split(rng)
-        input_shape_repr_small, param_repr_o = init_fun_repr_small(
-            layer_rng, input_shape
-        )
+        input_shape_repr_small, param_repr_o = init_fun_repr_small(layer_rng, input_shape)
         rng, layer_rng = random.split(rng)
         _, param_repr_mu0 = init_fun_repr_small(layer_rng, input_shape)
         rng, layer_rng = random.split(rng)
@@ -282,9 +274,7 @@ def train_snet(
 
         # prop and mu_0 each get two representations, mu_1 gets 3
         input_shape_repr_prop = input_shape_repr[:-1] + (2 * input_shape_repr[-1],)
-        input_shape_repr_mu = input_shape_repr[:-1] + (
-            input_shape_repr[-1] + (2 * input_shape_repr_small[-1]),
-        )
+        input_shape_repr_mu = input_shape_repr[:-1] + (input_shape_repr[-1] + (2 * input_shape_repr_small[-1]),)
 
         # initialise output heads
         rng, layer_rng = random.split(rng)
@@ -334,14 +324,9 @@ def train_snet(
             # log loss function
             inputs, targets, weights = batch
             preds = predict_fun_head_po(params, inputs)
-            return -jnp.sum(
-                weights
-                * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-            )
+            return -jnp.sum(weights * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)))
 
-    def loss_head_prop(
-        params: jnp.ndarray, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float
-    ) -> jnp.ndarray:
+    def loss_head_prop(params: jnp.ndarray, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float) -> jnp.ndarray:
         # log loss function for propensities
         inputs, targets = batch
         preds = predict_fun_head_prop(params, inputs)
@@ -387,8 +372,7 @@ def train_snet(
 
     else:
         raise NotImplementedError(
-            "train_snet_noprop supports only orthogonal regularization "
-            "using absolute values or frobenious norms."
+            "train_snet_noprop supports only orthogonal regularization " "using absolute values or frobenious norms."
         )
 
     # complete loss function for all parts
@@ -432,22 +416,10 @@ def train_snet(
 
         # weight decay on representations
         weightsq_body = sum(
-            [
-                sum(
-                    [jnp.sum(params[j][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]
-                )
-                for j in range(5)
-            ]
+            [sum([jnp.sum(params[j][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]) for j in range(5)]
         )
-        weightsq_head = heads_l2_penalty(
-            params[5], params[6], n_layers_out, reg_diff, penalty_l2, penalty_diff
-        )
-        weightsq_prop = sum(
-            [
-                jnp.sum(params[7][i][0] ** 2)
-                for i in range(0, 2 * n_layers_out_prop + 1, 2)
-            ]
-        )
+        weightsq_head = heads_l2_penalty(params[5], params[6], n_layers_out, reg_diff, penalty_l2, penalty_diff)
+        weightsq_prop = sum([jnp.sum(params[7][i][0] ** 2) for i in range(0, 2 * n_layers_out_prop + 1, 2)])
 
         if not avg_objective:
             return (
@@ -484,9 +456,7 @@ def train_snet(
         params = get_params(state)
         return opt_update(
             i,
-            grad(loss_snet)(
-                params, batch, penalty_l2, penalty_orthogonal, penalty_disc
-            ),
+            grad(loss_snet)(params, batch, penalty_l2, penalty_orthogonal, penalty_disc),
             state,
         )
 
@@ -507,9 +477,7 @@ def train_snet(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :], w[idx_next]
             opt_state = update(
                 i * n_batches + b,
@@ -681,18 +649,12 @@ def train_snet_noprop(
         penalty_diff = penalty_l2
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
-        X, y, w, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get representation layers
-    init_fun_repr, predict_fun_repr = ReprBlock(
-        n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin
-    )
-    init_fun_repr_small, predict_fun_repr_small = ReprBlock(
-        n_layers=n_layers_r, n_units=n_units_r_small, nonlin=nonlin
-    )
+    init_fun_repr, predict_fun_repr = ReprBlock(n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin)
+    init_fun_repr_small, predict_fun_repr_small = ReprBlock(n_layers=n_layers_r, n_units=n_units_r_small, nonlin=nonlin)
 
     # get output head functions (output heads share same structure)
     init_fun_head_po, predict_fun_head_po = OutputHead(
@@ -709,16 +671,12 @@ def train_snet_noprop(
         rng, layer_rng = random.split(rng)
         input_shape_repr, param_repr_o = init_fun_repr(layer_rng, input_shape)
         rng, layer_rng = random.split(rng)
-        input_shape_repr_small, param_repr_p0 = init_fun_repr_small(
-            layer_rng, input_shape
-        )
+        input_shape_repr_small, param_repr_p0 = init_fun_repr_small(layer_rng, input_shape)
         rng, layer_rng = random.split(rng)
         _, param_repr_p1 = init_fun_repr_small(layer_rng, input_shape)
 
         # each head gets two representations
-        input_shape_repr = input_shape_repr[:-1] + (
-            input_shape_repr[-1] + input_shape_repr_small[-1],
-        )
+        input_shape_repr = input_shape_repr[:-1] + (input_shape_repr[-1] + input_shape_repr_small[-1],)
 
         # initialise output heads
         rng, layer_rng = random.split(rng)
@@ -763,10 +721,7 @@ def train_snet_noprop(
             # log loss function
             inputs, targets, weights = batch
             preds = predict_fun_head_po(params, inputs)
-            return -jnp.sum(
-                weights
-                * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-            )
+            return -jnp.sum(weights * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)))
 
     # define ortho-reg function
     if ortho_reg_type == "abs":
@@ -788,8 +743,7 @@ def train_snet_noprop(
 
     else:
         raise NotImplementedError(
-            "train_snet_noprop supports only orthogonal regularization "
-            "using absolute values or frobenious norms."
+            "train_snet_noprop supports only orthogonal regularization " "using absolute values or frobenious norms."
         )
 
     # complete loss function for all parts
@@ -822,30 +776,14 @@ def train_snet_noprop(
 
         # weight decay on representations
         weightsq_body = sum(
-            [
-                sum(
-                    [jnp.sum(params[j][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]
-                )
-                for j in range(3)
-            ]
+            [sum([jnp.sum(params[j][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]) for j in range(3)]
         )
-        weightsq_head = heads_l2_penalty(
-            params[3], params[4], n_layers_out, reg_diff, penalty_l2, penalty_diff
-        )
+        weightsq_head = heads_l2_penalty(params[3], params[4], n_layers_out, reg_diff, penalty_l2, penalty_diff)
         if not avg_objective:
-            return (
-                loss_0
-                + loss_1
-                + loss_o
-                + 0.5 * (penalty_l2 * weightsq_body + weightsq_head)
-            )
+            return loss_0 + loss_1 + loss_o + 0.5 * (penalty_l2 * weightsq_body + weightsq_head)
         else:
             n_batch = y.shape[0]
-            return (
-                (loss_0 + loss_1) / n_batch
-                + loss_o
-                + 0.5 * (penalty_l2 * weightsq_body + weightsq_head)
-            )
+            return (loss_0 + loss_1) / n_batch + loss_o + 0.5 * (penalty_l2 * weightsq_body + weightsq_head)
 
     # Define optimisation routine
     opt_init, opt_update, get_params = optimizers.adam(step_size=step_size)
@@ -883,19 +821,13 @@ def train_snet_noprop(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :], w[idx_next]
-            opt_state = update(
-                i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_orthogonal
-            )
+            opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_orthogonal)
 
         if (i % n_iter_print == 0) or early_stopping:
             params_curr = get_params(opt_state)
-            l_curr = loss_snet_noprop(
-                params_curr, (X_val, y_val, w_val), penalty_l2, penalty_orthogonal
-            )
+            l_curr = loss_snet_noprop(params_curr, (X_val, y_val, w_val), penalty_l2, penalty_orthogonal)
 
         if i % n_iter_print == 0:
             log.info(f"Epoch: {i}, current {val_string} loss {l_curr}")

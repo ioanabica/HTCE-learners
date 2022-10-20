@@ -60,7 +60,7 @@ def preprocess(
     """
     np.random.seed(seed)
     random.seed(seed)
-    
+
     # Load original data (11400 patients, 30 features, 2 dimensional potential outcomes)
     df = pd.read_csv(fn_csv)
 
@@ -110,9 +110,7 @@ def preprocess(
     df_features = df[con_list + bin_list]
 
     for feat in cat_list:
-        df_features = pd.concat(
-            [df_features, pd.get_dummies(df[feat], prefix=feat)], axis=1
-        )
+        df_features = pd.concat([df_features, pd.get_dummies(df[feat], prefix=feat)], axis=1)
 
     # Define features
     feat_list = [
@@ -188,7 +186,7 @@ def preprocess(
     if train_ratio < 1:
         idx = np.random.permutation(no)
         train_idx = idx[: int(train_ratio * no)]
-        test_idx = idx[int(train_ratio * no):]
+        test_idx = idx[int(train_ratio * no) :]
 
         train_x = x[train_idx, :]
         train_w = w[train_idx]

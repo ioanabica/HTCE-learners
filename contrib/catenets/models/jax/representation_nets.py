@@ -440,15 +440,11 @@ def train_snet1(
         penalty_diff = penalty_l2
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
-        X, y, w, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get representation layer
-    init_fun_repr, predict_fun_repr = ReprBlock(
-        n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin
-    )
+    init_fun_repr, predict_fun_repr = ReprBlock(n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin)
 
     # get output head functions (both heads share same structure)
     init_fun_head, predict_fun_head = OutputHead(
@@ -479,9 +475,7 @@ def train_snet1(
     # loss functions for the head
     if not binary_y:
 
-        def loss_head(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
-        ) -> jnp.ndarray:
+        def loss_head(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> jnp.ndarray:
             # mse loss function
             inputs, targets, weights = batch
             preds = predict_fun_head(params, inputs)
@@ -489,16 +483,11 @@ def train_snet1(
 
     else:
 
-        def loss_head(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
-        ) -> jnp.ndarray:
+        def loss_head(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> jnp.ndarray:
             # mse loss function
             inputs, targets, weights = batch
             preds = predict_fun_head(params, inputs)
-            return -jnp.sum(
-                weights
-                * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-            )
+            return -jnp.sum(weights * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)))
 
     # complete loss function for all parts
     @jit
@@ -524,34 +513,21 @@ def train_snet1(
         loss_1 = loss_head(params[2], (reps, y, w))
 
         # regularization on representation
-        weightsq_body = sum(
-            [jnp.sum(params[0][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]
-        )
-        weightsq_head = heads_l2_penalty(
-            params[1], params[2], n_layers_out, reg_diff, penalty_l2, penalty_diff
-        )
+        weightsq_body = sum([jnp.sum(params[0][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)])
+        weightsq_head = heads_l2_penalty(params[1], params[2], n_layers_out, reg_diff, penalty_l2, penalty_diff)
         if not avg_objective:
-            return (
-                loss_0
-                + loss_1
-                + penalty_disc * disc
-                + 0.5 * (penalty_l2 * weightsq_body + weightsq_head)
-            )
+            return loss_0 + loss_1 + penalty_disc * disc + 0.5 * (penalty_l2 * weightsq_body + weightsq_head)
         else:
             n_batch = y.shape[0]
             return (
-                (loss_0 + loss_1) / n_batch
-                + penalty_disc * disc
-                + 0.5 * (penalty_l2 * weightsq_body + weightsq_head)
+                (loss_0 + loss_1) / n_batch + penalty_disc * disc + 0.5 * (penalty_l2 * weightsq_body + weightsq_head)
             )
 
     # Define optimisation routine
     opt_init, opt_update, get_params = optimizers.adam(step_size=step_size)
 
     @jit
-    def update(
-        i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_disc: float
-    ) -> jnp.ndarray:
+    def update(i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_disc: float) -> jnp.ndarray:
         # updating function
         params = get_params(state)
         return opt_update(
@@ -577,13 +553,9 @@ def train_snet1(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :], w[idx_next]
-            opt_state = update(
-                i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_disc
-            )
+            opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_disc)
 
         if (i % n_iter_print == 0) or early_stopping:
             params_curr = get_params(opt_state)
@@ -670,15 +642,11 @@ def train_snet2(
         penalty_diff = penalty_l2
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
-        X, y, w, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get representation layer
-    init_fun_repr, predict_fun_repr = ReprBlock(
-        n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin
-    )
+    init_fun_repr, predict_fun_repr = ReprBlock(n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin)
 
     # get output head functions (output heads share same structure)
     init_fun_head_po, predict_fun_head_po = OutputHead(
@@ -718,9 +686,7 @@ def train_snet2(
     # loss functions for the head
     if not binary_y:
 
-        def loss_head(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
-        ) -> jnp.ndarray:
+        def loss_head(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> jnp.ndarray:
             # mse loss function
             inputs, targets, weights = batch
             preds = predict_fun_head_po(params, inputs)
@@ -728,20 +694,13 @@ def train_snet2(
 
     else:
 
-        def loss_head(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
-        ) -> jnp.ndarray:
+        def loss_head(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> jnp.ndarray:
             # log loss function
             inputs, targets, weights = batch
             preds = predict_fun_head_po(params, inputs)
-            return -jnp.sum(
-                weights
-                * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-            )
+            return -jnp.sum(weights * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)))
 
-    def loss_head_prop(
-        params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float
-    ) -> jnp.ndarray:
+    def loss_head_prop(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float) -> jnp.ndarray:
         # log loss function for propensities
         inputs, targets = batch
         preds = predict_fun_head_prop(params, inputs)
@@ -769,27 +728,13 @@ def train_snet2(
 
         # pass down to propensity head
         loss_prop = loss_head_prop(params[3], (reps, w), penalty_l2)
-        weightsq_prop = sum(
-            [
-                jnp.sum(params[3][i][0] ** 2)
-                for i in range(0, 2 * n_layers_out_prop + 1, 2)
-            ]
-        )
+        weightsq_prop = sum([jnp.sum(params[3][i][0] ** 2) for i in range(0, 2 * n_layers_out_prop + 1, 2)])
 
-        weightsq_body = sum(
-            [jnp.sum(params[0][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]
-        )
-        weightsq_head = heads_l2_penalty(
-            params[1], params[2], n_layers_out, reg_diff, penalty_l2, penalty_diff
-        )
+        weightsq_body = sum([jnp.sum(params[0][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)])
+        weightsq_head = heads_l2_penalty(params[1], params[2], n_layers_out, reg_diff, penalty_l2, penalty_diff)
 
         if not avg_objective:
-            return (
-                loss_0
-                + loss_1
-                + loss_prop
-                + 0.5 * (penalty_l2 * (weightsq_body + weightsq_prop) + weightsq_head)
-            )
+            return loss_0 + loss_1 + loss_prop + 0.5 * (penalty_l2 * (weightsq_body + weightsq_prop) + weightsq_head)
         else:
             n_batch = y.shape[0]
             return (
@@ -802,14 +747,10 @@ def train_snet2(
     opt_init, opt_update, get_params = optimizers.adam(step_size=step_size)
 
     @jit
-    def update(
-        i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_diff: float
-    ) -> jnp.ndarray:
+    def update(i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_diff: float) -> jnp.ndarray:
         # updating function
         params = get_params(state)
-        return opt_update(
-            i, grad(loss_snet2)(params, batch, penalty_l2, penalty_diff), state
-        )
+        return opt_update(i, grad(loss_snet2)(params, batch, penalty_l2, penalty_diff), state)
 
     # initialise states
     _, init_params = init_fun_snet2(rng_key, input_shape)
@@ -828,19 +769,13 @@ def train_snet2(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :], w[idx_next]
-            opt_state = update(
-                i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_diff
-            )
+            opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_diff)
 
         if (i % n_iter_print == 0) or early_stopping:
             params_curr = get_params(opt_state)
-            l_curr = loss_snet2(
-                params_curr, (X_val, y_val, w_val), penalty_l2, penalty_diff
-            )
+            l_curr = loss_snet2(params_curr, (X_val, y_val, w_val), penalty_l2, penalty_diff)
 
         if i % n_iter_print == 0:
             log.info(f"Epoch: {i}, current {val_string} loss {l_curr}")

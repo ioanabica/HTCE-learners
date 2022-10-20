@@ -84,7 +84,7 @@ class SLearner(BaseCATEEstimator):
         nonlin: str = DEFAULT_NONLIN,
         weighting_strategy: Optional[str] = None,
         batch_norm: bool = True,
-        early_stopping: bool = True
+        early_stopping: bool = True,
     ) -> None:
         super(SLearner, self).__init__()
 
@@ -107,7 +107,7 @@ class SLearner(BaseCATEEstimator):
                 seed=seed,
                 nonlin=nonlin,
                 batch_norm=batch_norm,
-                early_stopping=early_stopping
+                early_stopping=early_stopping,
             ).to(DEVICE)
         if weighting_strategy is not None:
             self._propensity_estimator = PropensityNet(
@@ -126,7 +126,7 @@ class SLearner(BaseCATEEstimator):
                 nonlin=nonlin,
                 val_split_prop=val_split_prop,
                 batch_norm=batch_norm,
-                early_stopping=early_stopping
+                early_stopping=early_stopping,
             ).to(DEVICE)
 
     def train(
@@ -155,9 +155,7 @@ class SLearner(BaseCATEEstimator):
         # add indicator as additional variable
         X_ext = torch.cat((X, w.reshape((-1, 1))), dim=1).to(DEVICE)
 
-        if not (
-            hasattr(self._po_estimator, "train") or hasattr(self._po_estimator, "fit")
-        ):
+        if not (hasattr(self._po_estimator, "train") or hasattr(self._po_estimator, "fit")):
             raise NotImplementedError("invalid po_estimator for the slearner")
 
         if hasattr(self._po_estimator, "fit"):

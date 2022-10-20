@@ -219,18 +219,12 @@ def train_snet3(
         penalty_diff = penalty_l2
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
-        X, y, w, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(X, y, w, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get representation layers
-    init_fun_repr, predict_fun_repr = ReprBlock(
-        n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin
-    )
-    init_fun_repr_small, predict_fun_repr_small = ReprBlock(
-        n_layers=n_layers_r, n_units=n_units_r_small, nonlin=nonlin
-    )
+    init_fun_repr, predict_fun_repr = ReprBlock(n_layers=n_layers_r, n_units=n_units_r, nonlin=nonlin)
+    init_fun_repr_small, predict_fun_repr_small = ReprBlock(n_layers=n_layers_r, n_units=n_units_r_small, nonlin=nonlin)
 
     # get output head functions (output heads share same structure)
     init_fun_head_po, predict_fun_head_po = OutputHead(
@@ -254,16 +248,12 @@ def train_snet3(
         rng, layer_rng = random.split(rng)
         input_shape_repr, param_repr_c = init_fun_repr(layer_rng, input_shape)
         rng, layer_rng = random.split(rng)
-        input_shape_repr_small, param_repr_o = init_fun_repr_small(
-            layer_rng, input_shape
-        )
+        input_shape_repr_small, param_repr_o = init_fun_repr_small(layer_rng, input_shape)
         rng, layer_rng = random.split(rng)
         _, param_repr_w = init_fun_repr_small(layer_rng, input_shape)
 
         # each head gets two representations
-        input_shape_repr = input_shape_repr[:-1] + (
-            input_shape_repr[-1] + input_shape_repr_small[-1],
-        )
+        input_shape_repr = input_shape_repr[:-1] + (input_shape_repr[-1] + input_shape_repr_small[-1],)
 
         # initialise output heads
         rng, layer_rng = random.split(rng)
@@ -310,10 +300,7 @@ def train_snet3(
             # log loss function
             inputs, targets, weights = batch
             preds = predict_fun_head_po(params, inputs)
-            return -jnp.sum(
-                weights
-                * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-            )
+            return -jnp.sum(weights * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)))
 
     def loss_head_prop(
         params: List,
@@ -353,36 +340,22 @@ def train_snet3(
 
         # pass down to propensity head
         loss_prop = loss_head_prop(params[5], (reps_prop, w), penalty_l2)
-        weightsq_prop = sum(
-            [
-                jnp.sum(params[5][i][0] ** 2)
-                for i in range(0, 2 * n_layers_out_prop + 1, 2)
-            ]
-        )
+        weightsq_prop = sum([jnp.sum(params[5][i][0] ** 2) for i in range(0, 2 * n_layers_out_prop + 1, 2)])
 
         # which variable has impact on which representation
         col_c = _get_absolute_rowsums(params[0][0][0])
         col_o = _get_absolute_rowsums(params[1][0][0])
         col_w = _get_absolute_rowsums(params[2][0][0])
-        loss_o = penalty_orthogonal * (
-            jnp.sum(col_c * col_o + col_c * col_w + col_w * col_o)
-        )
+        loss_o = penalty_orthogonal * (jnp.sum(col_c * col_o + col_c * col_w + col_w * col_o))
 
         # is rep_o balanced between groups?
         loss_disc = penalty_disc * mmd2_lin(reps_o, w)
 
         # weight decay on representations
         weightsq_body = sum(
-            [
-                sum(
-                    [jnp.sum(params[j][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]
-                )
-                for j in range(3)
-            ]
+            [sum([jnp.sum(params[j][i][0] ** 2) for i in range(0, 2 * n_layers_r, 2)]) for j in range(3)]
         )
-        weightsq_head = heads_l2_penalty(
-            params[3], params[4], n_layers_out, reg_diff, penalty_l2, penalty_diff
-        )
+        weightsq_head = heads_l2_penalty(params[3], params[4], n_layers_out, reg_diff, penalty_l2, penalty_diff)
 
         if not avg_objective:
             return (
@@ -419,9 +392,7 @@ def train_snet3(
         params = get_params(state)
         return opt_update(
             i,
-            grad(loss_snet3)(
-                params, batch, penalty_l2, penalty_orthogonal, penalty_disc
-            ),
+            grad(loss_snet3)(params, batch, penalty_l2, penalty_orthogonal, penalty_disc),
             state,
         )
 
@@ -442,9 +413,7 @@ def train_snet3(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :], w[idx_next]
             opt_state = update(
                 i * n_batches + b,

@@ -183,9 +183,7 @@ class XNet(BaseCATENet):
         # Two step nets do not need this
         return predict_x_net
 
-    def predict(
-        self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False
-    ) -> jnp.ndarray:
+    def predict(self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False) -> jnp.ndarray:
         """
         Predict treatment effect estimates using a CATENet. Depending on method, can also return
         potential outcome estimate and propensity score estimate.

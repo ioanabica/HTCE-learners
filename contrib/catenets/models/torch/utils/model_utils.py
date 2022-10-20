@@ -35,9 +35,7 @@ def make_val_split(
     y = y.cpu()
     # make actual split
     if w is None:
-        X_t, X_val, y_t, y_val = train_test_split(
-            X, y, test_size=val_split_prop, random_state=seed, shuffle=True
-        )
+        X_t, X_val, y_t, y_val = train_test_split(X, y, test_size=val_split_prop, random_state=seed, shuffle=True)
         return (
             X_t.to(DEVICE),
             y_t.to(DEVICE),

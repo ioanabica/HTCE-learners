@@ -37,9 +37,7 @@ from contrib.catenets.models.jax.model_utils import (
 )
 
 
-def ReprBlock(
-    n_layers: int = 3, n_units: int = 100, nonlin: str = DEFAULT_NONLIN
-) -> Any:
+def ReprBlock(n_layers: int = 3, n_units: int = 100, nonlin: str = DEFAULT_NONLIN) -> Any:
     # Creates a representation block using jax.stax
     # create first layer
     if nonlin == "elu":
@@ -171,9 +169,7 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
     def _get_predict_function(self) -> Callable:
         ...
 
-    def predict(
-        self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False
-    ) -> jnp.ndarray:
+    def predict(self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False) -> jnp.ndarray:
         """
         Predict treatment effect estimates using a CATENet. Depending on method, can also return
         potential outcome estimate and propensity score estimate.
@@ -235,9 +231,7 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
         for param_setting in param_grid:
             log.debug(
                 "Testing parameter setting: "
-                + " ".join(
-                    [key + ": " + str(value) for key, value in param_setting.items()]
-                )
+                + " ".join([key + ": " + str(value) for key, value in param_setting.items()])
             )
             # replace params
             train_param_dict = {
@@ -245,13 +239,9 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
                 for key, val in self_param_dict.items()
             }
             if p is not None:
-                params, funs, val_loss = train_function(
-                    X, y, w, p=p, return_val_loss=True, **train_param_dict
-                )
+                params, funs, val_loss = train_function(X, y, w, p=p, return_val_loss=True, **train_param_dict)
             else:
-                params, funs, val_loss = train_function(
-                    X, y, w, return_val_loss=True, **train_param_dict
-                )
+                params, funs, val_loss = train_function(X, y, w, return_val_loss=True, **train_param_dict)
 
             models.append((params, funs))
             losses.append(val_loss)
@@ -302,9 +292,7 @@ def train_output_net_only(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y, X_val, y_val, val_string = make_val_split(
-        X, y, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, X_val, y_val, val_string = make_val_split(X, y, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get output head
@@ -321,18 +309,11 @@ def train_output_net_only(
     if not binary_y:
         # define loss and grad
         @jit
-        def loss(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float
-        ) -> jnp.ndarray:
+        def loss(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float) -> jnp.ndarray:
             # mse loss function
             inputs, targets = batch
             preds = predict_fun(params, inputs)
-            weightsq = sum(
-                [
-                    jnp.sum(params[i][0] ** 2)
-                    for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)
-                ]
-            )
+            weightsq = sum([jnp.sum(params[i][0] ** 2) for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)])
             if not avg_objective:
                 return jnp.sum((preds - targets) ** 2) + 0.5 * penalty * weightsq
             else:
@@ -341,30 +322,18 @@ def train_output_net_only(
     else:
         # get loss and grad
         @jit
-        def loss(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float
-        ) -> jnp.ndarray:
+        def loss(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float) -> jnp.ndarray:
             # mse loss function
             inputs, targets = batch
             preds = predict_fun(params, inputs)
-            weightsq = sum(
-                [
-                    jnp.sum(params[i][0] ** 2)
-                    for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)
-                ]
-            )
+            weightsq = sum([jnp.sum(params[i][0] ** 2) for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)])
             if not avg_objective:
                 return (
-                    -jnp.sum(
-                        targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)
-                    )
-                    + 0.5 * penalty * weightsq
+                    -jnp.sum(targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)) + 0.5 * penalty * weightsq
                 )
             else:
                 return (
-                    -jnp.average(
-                        targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)
-                    )
+                    -jnp.average(targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
                     + 0.5 * penalty * weightsq
                 )
 
@@ -396,9 +365,7 @@ def train_output_net_only(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :]
             opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2)
 

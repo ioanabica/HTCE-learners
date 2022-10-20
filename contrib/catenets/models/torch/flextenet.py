@@ -35,9 +35,7 @@ class FlexTELinearLayer(nn.Module):
     def __init__(self, name: str, *args: Any, **kwargs: Any) -> None:
         super(FlexTELinearLayer, self).__init__()
         self.name = name
-        self.model = nn.Sequential(nn.Dropout(0.5), nn.Linear(*args, **kwargs)).to(
-            DEVICE
-        )
+        self.model = nn.Sequential(nn.Dropout(0.5), nn.Linear(*args, **kwargs)).to(DEVICE)
 
     def forward(self, tensors: List[torch.Tensor]) -> List:
         if len(tensors) != 2:
@@ -73,15 +71,9 @@ class FlexTESplitLayer(nn.Module):
         self.n_units_s = n_units_s
         self.n_units_p = n_units_p
 
-        self.net_shared = nn.Sequential(
-            nn.Dropout(0.5), nn.Linear(n_units_in, n_units_s)
-        ).to(DEVICE)
-        self.net_p0 = nn.Sequential(
-            nn.Dropout(0.5), nn.Linear(n_units_in_p, n_units_p)
-        ).to(DEVICE)
-        self.net_p1 = nn.Sequential(
-            nn.Dropout(0.5), nn.Linear(n_units_in_p, n_units_p)
-        ).to(DEVICE)
+        self.net_shared = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in, n_units_s)).to(DEVICE)
+        self.net_p0 = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in_p, n_units_p)).to(DEVICE)
+        self.net_p1 = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in_p, n_units_p)).to(DEVICE)
 
     def forward(self, tensors: List[torch.Tensor]) -> List:
         if self.first_layer and len(tensors) != 2:
@@ -118,15 +110,9 @@ class FlexTEOutputLayer(nn.Module):
     def __init__(self, n_units_in: int, n_units_in_p: int, private: bool) -> None:
         super(FlexTEOutputLayer, self).__init__()
         self.private = private
-        self.net_shared = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in, 1)).to(
-            DEVICE
-        )
-        self.net_p0 = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in_p, 1)).to(
-            DEVICE
-        )
-        self.net_p1 = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in_p, 1)).to(
-            DEVICE
-        )
+        self.net_shared = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in, 1)).to(DEVICE)
+        self.net_p0 = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in_p, 1)).to(DEVICE)
+        self.net_p1 = nn.Sequential(nn.Dropout(0.5), nn.Linear(n_units_in_p, 1)).to(DEVICE)
 
     def forward(self, tensors: List[torch.Tensor]) -> torch.Tensor:
         if len(tensors) != 4:
@@ -330,9 +316,7 @@ class FlexTENet(BaseCATEEstimator):
             for i in range(self.n_layers_r - 1):
                 layers.extend(
                     [
-                        FlexTELinearLayer(
-                            f"shared_repr_layer_{i + 1}", n_units_s_r, n_units_s_r
-                        ),
+                        FlexTELinearLayer(f"shared_repr_layer_{i + 1}", n_units_s_r, n_units_s_r),
                         ElementWiseSplitActivation(nn.SELU(inplace=True)),
                     ]
                 )
@@ -400,20 +384,14 @@ class FlexTENet(BaseCATEEstimator):
             )
 
         # append final layer
-        layers.append(
-            FlexTEOutputLayer(
-                n_units_s_out, n_units_s_out + n_units_p_out, private=self.private_out
-            )
-        )
+        layers.append(FlexTEOutputLayer(n_units_s_out, n_units_s_out + n_units_p_out, private=self.private_out))
         if binary_y:
             layers.append(nn.Sigmoid())
 
         self.model = nn.Sequential(*layers).to(DEVICE)
 
     def _ortho_penalty_asymmetric(self) -> torch.Tensor:
-        def _get_cos_reg(
-            params_0: torch.Tensor, params_1: torch.Tensor, normalize: bool
-        ) -> torch.Tensor:
+        def _get_cos_reg(params_0: torch.Tensor, params_1: torch.Tensor, normalize: bool) -> torch.Tensor:
             if normalize:
                 params_0 = params_0 / torch.linalg.norm(params_0, dim=0)
                 params_1 = params_1 / torch.linalg.norm(params_1, dim=0)
@@ -421,16 +399,9 @@ class FlexTENet(BaseCATEEstimator):
             x_min = min(params_0.shape[0], params_1.shape[0])
             y_min = min(params_0.shape[1], params_1.shape[1])
 
-            return (
-                torch.linalg.norm(
-                    params_0[:x_min, :y_min] * params_1[:x_min, :y_min], "fro"
-                )
-                ** 2
-            )
+            return torch.linalg.norm(params_0[:x_min, :y_min] * params_1[:x_min, :y_min], "fro") ** 2
 
-        def _apply_reg_split_layer(
-            layer: FlexTESplitLayer, full: bool = True
-        ) -> torch.Tensor:
+        def _apply_reg_split_layer(layer: FlexTESplitLayer, full: bool = True) -> torch.Tensor:
             _ortho_body = 0
             if full:
                 _ortho_body = _get_cos_reg(
@@ -521,9 +492,7 @@ class FlexTENet(BaseCATEEstimator):
         n_batches = int(np.round(n / batch_size)) if batch_size < n else 1
         train_indices = np.arange(n)
 
-        optimizer = torch.optim.Adam(
-            self.parameters(), lr=self.lr, weight_decay=self.weight_decay
-        )
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
         # training
         val_loss_best = LARGE_VAL
@@ -535,9 +504,7 @@ class FlexTENet(BaseCATEEstimator):
             for b in range(n_batches):
                 optimizer.zero_grad()
 
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
 
                 X_next = X[idx_next]
                 y_next = y[idx_next].squeeze()

@@ -229,9 +229,7 @@ class PseudoOutcomeNet(BaseCATENet):
             train_params.update({"transformation": self.transformation})
 
         if self.rescale_transformation:
-            self._params, self._predict_funs, self._scale_factor = train_func(
-                X, y, w, p, **train_params
-            )
+            self._params, self._predict_funs, self._scale_factor = train_func(X, y, w, p, **train_params)
         else:
             self._params, self._predict_funs = train_func(X, y, w, p, **train_params)
 
@@ -241,14 +239,10 @@ class PseudoOutcomeNet(BaseCATENet):
         # Two step nets do not need this
         pass
 
-    def predict(
-        self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False
-    ) -> jnp.ndarray:
+    def predict(self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False) -> jnp.ndarray:
         # check input
         if return_po:
-            raise NotImplementedError(
-                "TwoStepNets have no Potential outcome predictors."
-            )
+            raise NotImplementedError("TwoStepNets have no Potential outcome predictors.")
 
         if return_prop:
             raise NotImplementedError("TwoStepNets have no Propensity predictors.")
@@ -572,9 +566,7 @@ def train_pseudooutcome_net(
             log.debug(f"Training first stage in {n_cf_folds} folds (cross-fitting)")
             # do cross fitting
             mu_0, mu_1, pi_hat = onp.zeros((n, 1)), onp.zeros((n, 1)), onp.zeros((n, 1))
-            splitter = StratifiedKFold(
-                n_splits=n_cf_folds, shuffle=True, random_state=seed
-            )
+            splitter = StratifiedKFold(n_splits=n_cf_folds, shuffle=True, random_state=seed)
 
             fold_count = 1
             for train_idx, test_idx in splitter.split(X, w):
@@ -586,11 +578,7 @@ def train_pseudooutcome_net(
                 pred_mask[test_idx] = 1
                 fit_mask = ~pred_mask
 
-                (
-                    mu_0[pred_mask],
-                    mu_1[pred_mask],
-                    pi_hat[pred_mask],
-                ) = _train_and_predict_first_stage(
+                (mu_0[pred_mask], mu_1[pred_mask], pi_hat[pred_mask],) = _train_and_predict_first_stage(
                     X,
                     y,
                     w,
@@ -742,11 +730,7 @@ def _train_and_predict_first_stage(
     elif first_stage_strategy == FLEX_STRATEGY:
         train_fun, predict_fun = train_flextenet, predict_flextenet
     else:
-        raise ValueError(
-            "{} is not a valid first stage strategy for a PseudoOutcomeNet".format(
-                first_stage_strategy
-            )
-        )
+        raise ValueError("{} is not a valid first stage strategy for a PseudoOutcomeNet".format(first_stage_strategy))
 
     log.debug("Training PO estimators")
     trained_params, pred_fun = train_fun(
@@ -774,14 +758,10 @@ def _train_and_predict_first_stage(
     )
 
     if first_stage_strategy in [S_STRATEGY, S2_STRATEGY, S3_STRATEGY]:
-        _, mu_0, mu_1, pi_hat = predict_fun(
-            X_pred, trained_params, pred_fun, return_po=True, return_prop=True
-        )
+        _, mu_0, mu_1, pi_hat = predict_fun(X_pred, trained_params, pred_fun, return_po=True, return_prop=True)
     else:
         if transformation is not PW_TRANSFORMATION:
-            _, mu_0, mu_1 = predict_fun(
-                X_pred, trained_params, pred_fun, return_po=True
-            )
+            _, mu_0, mu_1 = predict_fun(X_pred, trained_params, pred_fun, return_po=True)
         else:
             mu_0, mu_1 = onp.nan, onp.nan
 

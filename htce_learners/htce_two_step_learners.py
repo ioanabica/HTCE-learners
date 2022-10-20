@@ -117,9 +117,7 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
             nonlin="relu",
         ).to(DEVICE)
 
-    def _generate_propensity_estimator(
-        self, name: str = "propensity_estimator"
-    ) -> nn.Module:
+    def _generate_propensity_estimator(self, name: str = "propensity_estimator") -> nn.Module:
         if self.weighting_strategy is None:
             raise ValueError("Invalid weighting_strategy for PropensityNet")
         return HTCEBaseEstimator(
@@ -135,15 +133,34 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
 
     def train(
         self,
-        X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-        y_source, y_target,
-        w_source, w_target
+        X_source_specific,
+        X_source_shared,
+        X_target_specific,
+        X_target_shared,
+        y_source,
+        y_target,
+        w_source,
+        w_target,
     ) -> "PseudoOutcomeLearner":
 
         # STEP 1: fit plug-in estimators
-        mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target, p_pred_source, p_pred_target = self._first_step(
-            X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-            y_source, y_target, w_source, w_target)
+        (
+            mu_0_pred_source,
+            mu_0_pred_target,
+            mu_1_pred_source,
+            mu_1_pred_target,
+            p_pred_source,
+            p_pred_target,
+        ) = self._first_step(
+            X_source_specific,
+            X_source_shared,
+            X_target_specific,
+            X_target_shared,
+            y_source,
+            y_target,
+            w_source,
+            w_target,
+        )
 
         # use estimated propensity scores
         if self.weighting_strategy is not None:
@@ -151,17 +168,28 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
             p_target = p_pred_target
 
         # STEP 2: direct TE estimation
-        self._second_step(X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-                          y_source, y_target, w_source, w_target,
-                          p_source, p_target, mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target)
+        self._second_step(
+            X_source_specific,
+            X_source_shared,
+            X_target_specific,
+            X_target_shared,
+            y_source,
+            y_target,
+            w_source,
+            w_target,
+            p_source,
+            p_target,
+            mu_0_pred_source,
+            mu_0_pred_target,
+            mu_1_pred_source,
+            mu_1_pred_target,
+        )
 
         return self
 
-    def predict(self, X_specific, X_shared, return_po=False, training=False, env='target') -> torch.Tensor:
+    def predict(self, X_specific, X_shared, return_po=False, training=False, env="target") -> torch.Tensor:
         if return_po:
-            raise NotImplementedError(
-                "PseudoOutcomeLearners have no Potential outcome predictors."
-            )
+            raise NotImplementedError("PseudoOutcomeLearners have no Potential outcome predictors.")
         outcome, y0_preds, y1_preds = self._po_estimator.predict(X_specific, X_shared, return_po=True, env=env)
         cate_pred = outcome
 
@@ -172,59 +200,85 @@ class HTCE_PseudoOutcomeLearner(nn.Module):
     @abc.abstractmethod
     def _first_step(
         self,
-        X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-        y_source, y_target, w_source, w_target
+        X_source_specific,
+        X_source_shared,
+        X_target_specific,
+        X_target_shared,
+        y_source,
+        y_target,
+        w_source,
+        w_target,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         pass
 
     @abc.abstractmethod
     def _second_step(
         self,
-        X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-        y_source, y_target, w_source, w_target,
-        p_source, p_target, mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target,
+        X_source_specific,
+        X_source_shared,
+        X_target_specific,
+        X_target_shared,
+        y_source,
+        y_target,
+        w_source,
+        w_target,
+        p_source,
+        p_target,
+        mu_0_pred_source,
+        mu_0_pred_target,
+        mu_1_pred_source,
+        mu_1_pred_target,
     ) -> None:
         pass
 
     def _impute_pos(
         self,
-        X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-        y_source, y_target, w_source, w_target
+        X_source_specific,
+        X_source_shared,
+        X_target_specific,
+        X_target_shared,
+        y_source,
+        y_target,
+        w_source,
+        w_target,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
         # fit two separate (standard) models - TLearner
-        self._po_estimator.train(X_source_specific, X_source_shared, X_target_specific, X_target_shared, y_source,
-                                 y_target, w_source, w_target)
+        self._po_estimator.train(
+            X_source_specific,
+            X_source_shared,
+            X_target_specific,
+            X_target_shared,
+            y_source,
+            y_target,
+            w_source,
+            w_target,
+        )
 
-        _, mu_0_pred_source, mu_1_pred_source = self._po_estimator.predict(X_specific=X_source_specific,
-                                                                           X_shared=X_source_shared,
-                                                                           return_po=True, env='source')
-        _, mu_0_pred_target, mu_1_pred_target = self._po_estimator.predict(X_specific=X_target_specific,
-                                                                           X_shared=X_target_shared,
-                                                                           return_po=True, env='target')
+        _, mu_0_pred_source, mu_1_pred_source = self._po_estimator.predict(
+            X_specific=X_source_specific, X_shared=X_source_shared, return_po=True, env="source"
+        )
+        _, mu_0_pred_target, mu_1_pred_target = self._po_estimator.predict(
+            X_specific=X_target_specific, X_shared=X_target_shared, return_po=True, env="target"
+        )
 
         return mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target
 
     def _impute_propensity(
-        self,
-        X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-        w_source, w_target
+        self, X_source_specific, X_source_shared, X_target_specific, X_target_shared, w_source, w_target
     ) -> torch.Tensor:
         # split sample
         # fit propensity estimator
 
-        self._propensity_estimator = self._generate_propensity_estimator(
-            "prop_estimator_impute_propensity"
+        self._propensity_estimator = self._generate_propensity_estimator("prop_estimator_impute_propensity")
+        self._propensity_estimator.train(
+            X_source_specific, X_source_shared, X_target_specific, X_target_shared, w_source, w_target
         )
-        self._propensity_estimator.train(X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-                                         w_source, w_target)
 
-        p_pred_source = self._propensity_estimator.predict(
-            X_source_specific, X_source_shared, env='source')
+        p_pred_source = self._propensity_estimator.predict(X_source_specific, X_source_shared, env="source")
         p_pred_source = compute_importance_weights(p_pred_source, w_source, self.weighting_strategy, {})
 
-        p_pred_target = self._propensity_estimator.predict(
-            X_target_specific, X_target_shared, env='target')
+        p_pred_target = self._propensity_estimator.predict(X_target_specific, X_target_shared, env="target")
         p_pred_target = compute_importance_weights(p_pred_target, w_target, self.weighting_strategy, {})
 
         return p_pred_source, p_pred_target
@@ -237,27 +291,53 @@ class HTCE_DRLearner(HTCE_PseudoOutcomeLearner):
 
     def _first_step(
         self,
-        X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-        y_source, y_target, w_source, w_target
+        X_source_specific,
+        X_source_shared,
+        X_target_specific,
+        X_target_shared,
+        y_source,
+        y_target,
+        w_source,
+        w_target,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target = self._impute_pos(X_source_specific,
-                                                                                                  X_source_shared,
-                                                                                                  X_target_specific,
-                                                                                                  X_target_shared,
-                                                                                                  y_source, y_target,
-                                                                                                  w_source, w_target)
-        p_pred_source, p_pred_target = self._impute_propensity(X_source_specific, X_source_shared, X_target_specific,
-                                                               X_target_shared,
-                                                               w_source, w_target)
-        return mu_0_pred_source.squeeze(), mu_0_pred_target.squeeze(), \
-               mu_1_pred_source.squeeze(), mu_1_pred_target.squeeze(), \
-               p_pred_source.squeeze(), p_pred_target.squeeze()
+        mu_0_pred_source, mu_0_pred_target, mu_1_pred_source, mu_1_pred_target = self._impute_pos(
+            X_source_specific,
+            X_source_shared,
+            X_target_specific,
+            X_target_shared,
+            y_source,
+            y_target,
+            w_source,
+            w_target,
+        )
+        p_pred_source, p_pred_target = self._impute_propensity(
+            X_source_specific, X_source_shared, X_target_specific, X_target_shared, w_source, w_target
+        )
+        return (
+            mu_0_pred_source.squeeze(),
+            mu_0_pred_target.squeeze(),
+            mu_1_pred_source.squeeze(),
+            mu_1_pred_target.squeeze(),
+            p_pred_source.squeeze(),
+            p_pred_target.squeeze(),
+        )
 
     def _second_step(
         self,
-        X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-        y_source, y_target, w_source, w_target,
-        p_source, p_target, mu_0_source, mu_0_target, mu_1_source, mu_1_target,
+        X_source_specific,
+        X_source_shared,
+        X_target_specific,
+        X_target_shared,
+        y_source,
+        y_target,
+        w_source,
+        w_target,
+        p_source,
+        p_target,
+        mu_0_source,
+        mu_0_target,
+        mu_1_source,
+        mu_1_target,
     ) -> None:
         y_source_tensor = torch.Tensor(y_source).squeeze().to(DEVICE)
         y_target_tensor = torch.Tensor(y_target).squeeze().to(DEVICE)
@@ -265,20 +345,21 @@ class HTCE_DRLearner(HTCE_PseudoOutcomeLearner):
         w_source_tensor = torch.Tensor(w_source).squeeze().long().to(DEVICE)
         w_target_tensor = torch.Tensor(w_target).squeeze().long().to(DEVICE)
 
-        pseudo_outcome_source = dr_transformation_cate(y_source_tensor, w_source_tensor, p_source, mu_0_source,
-                                                       mu_1_source)
-        pseudo_outcome_target = dr_transformation_cate(y_target_tensor, w_target_tensor, p_target, mu_0_target,
-                                                       mu_1_target)
+        pseudo_outcome_source = dr_transformation_cate(
+            y_source_tensor, w_source_tensor, p_source, mu_0_source, mu_1_source
+        )
+        pseudo_outcome_target = dr_transformation_cate(
+            y_target_tensor, w_target_tensor, p_target, mu_0_target, mu_1_target
+        )
 
         pseudo_outcome_source = pseudo_outcome_source.cpu().detach().numpy()
         pseudo_outcome_target = pseudo_outcome_target.cpu().detach().numpy()
 
-        self._te_estimator.train(X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-                                 pseudo_outcome_source, pseudo_outcome_target)
-
-
-
-
-
-
-
+        self._te_estimator.train(
+            X_source_specific,
+            X_source_shared,
+            X_target_specific,
+            X_target_shared,
+            pseudo_outcome_source,
+            pseudo_outcome_target,
+        )
