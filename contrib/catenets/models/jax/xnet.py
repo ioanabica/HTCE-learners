@@ -183,9 +183,7 @@ class XNet(BaseCATENet):
         # Two step nets do not need this
         return predict_x_net
 
-    def predict(
-        self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False
-    ) -> jnp.ndarray:
+    def predict(self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False) -> jnp.ndarray:
         """
         Predict treatment effect estimates using a CATENet. Depending on method, can also return
         potential outcome estimate and propensity score estimate.
@@ -203,7 +201,7 @@ class XNet(BaseCATENet):
         -------
         array of CATE estimates, optionally also potential outcomes and propensity
         """
-        X = check_X_is_np(X)
+        X = check_X_is_np(X)  # type: ignore
         predict_func = self._get_predict_function()
         return predict_func(
             X,
@@ -297,7 +295,7 @@ def train_x_net(
     if weight_strategy is None or weight_strategy == -1:
         # also fit propensity estimator
         log.debug("Training propensity net")
-        params_prop, predict_fun_prop = train_output_net_only(
+        params_prop, predict_fun_prop = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
             X,
             w,
             binary_y=True,
@@ -328,7 +326,7 @@ def train_x_net(
         # fit tau_0
         log.debug("Fitting tau_0")
         pseudo_outcome0 = mu_hat_1 - y[w == 0]
-        params_tau0, predict_fun_tau0 = train_output_net_only(
+        params_tau0, predict_fun_tau0 = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
             X[w == 0],
             pseudo_outcome0,
             binary_y=False,
@@ -357,7 +355,7 @@ def train_x_net(
         # fit tau_1
         log.debug("Fitting tau_1")
         pseudo_outcome1 = y[w == 1] - mu_hat_0
-        params_tau1, predict_fun_tau1 = train_output_net_only(
+        params_tau1, predict_fun_tau1 = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
             X[w == 1],
             pseudo_outcome1,
             binary_y=False,
@@ -434,7 +432,7 @@ def _get_first_stage_pos(
     elif first_stage_strategy == FLEX_STRATEGY:
         train_fun, predict_fun = train_flextenet, predict_flextenet
 
-    trained_params, pred_fun = train_fun(
+    trained_params, pred_fun = train_fun(  # type: ignore
         X,
         y,
         w,
@@ -458,7 +456,7 @@ def _get_first_stage_pos(
         **first_stage_args
     )
 
-    _, mu_0, mu_1 = predict_fun(X, trained_params, pred_fun, return_po=True)
+    _, mu_0, mu_1 = predict_fun(X, trained_params, pred_fun, return_po=True)  # type: ignore
 
     return mu_0[w == 1], mu_1[w == 0]
 
@@ -486,23 +484,23 @@ def predict_x_net(
     if not weight_strategy == 0:
         tau0_pred = predict_fun_tau0(params_tau0, X)
     else:
-        tau0_pred = 0
+        tau0_pred = 0  # type: ignore
 
     if not weight_strategy == 1:
         tau1_pred = predict_fun_tau1(params_tau1, X)
     else:
-        tau1_pred = 0
+        tau1_pred = 0  # type: ignore
 
     if weight_strategy is None or weight_strategy == -1:
         prop_pred = predict_fun_prop(params_prop, X)
 
     if weight_strategy is None:
-        weight = prop_pred
+        weight = prop_pred  # type: ignore
     elif weight_strategy == -1:
-        weight = 1 - prop_pred
+        weight = 1 - prop_pred  # type: ignore
     elif weight_strategy == 0:
         weight = 0
     elif weight_strategy == 1:
         weight = 1
 
-    return weight * tau0_pred + (1 - weight) * tau1_pred
+    return weight * tau0_pred + (1 - weight) * tau1_pred  # type: ignore

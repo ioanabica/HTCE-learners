@@ -27,7 +27,7 @@ from contrib.catenets.models.torch.utils.decorators import benchmark, check_inpu
 from contrib.catenets.models.torch.utils.model_utils import make_val_split
 from contrib.catenets.models.torch.utils.weight_utils import compute_importance_weights
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # type: ignore
 
 EPS = 1e-8
 
@@ -97,7 +97,7 @@ class BasicNet(nn.Module):
         n_iter_min: int = DEFAULT_N_ITER_MIN,
         clipping_value: int = 1,
         batch_norm: bool = True,
-        early_stopping: bool = True
+        early_stopping: bool = True,
     ) -> None:
         super(BasicNet, self).__init__()
 
@@ -139,7 +139,7 @@ class BasicNet(nn.Module):
             layers = [nn.Linear(n_unit_in, 1)]
 
         if binary_y:
-            layers.append(nn.Sigmoid())
+            layers.append(nn.Sigmoid())  # type: ignore
 
         # return final architecture
         self.model = nn.Sequential(*layers).to(DEVICE)
@@ -155,23 +155,19 @@ class BasicNet(nn.Module):
         self.clipping_value = clipping_value
         self.early_stopping = early_stopping
 
-        self.optimizer = torch.optim.Adam(
-            self.parameters(), lr=lr, weight_decay=weight_decay
-        )
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)  # type: ignore
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return self.model(X)
+        return self.model(X)  # pylint: disable=not-callable
 
-    def train(
+    def train(  # pylint: disable=arguments-differ
         self, X: torch.Tensor, y: torch.Tensor, weight: Optional[torch.Tensor] = None
     ) -> "BasicNet":
         X = self._check_tensor(X)
         y = self._check_tensor(y).squeeze()
 
         # get validation split (can be none)
-        X, y, X_val, y_val, val_string = make_val_split(
-            X, y, val_split_prop=self.val_split_prop, seed=self.seed
-        )
+        X, y, X_val, y_val, val_string = make_val_split(X, y, val_split_prop=self.val_split_prop, seed=self.seed)
         y_val = y_val.squeeze()
         n = X.shape[0]  # could be different from before due to split
 
@@ -190,9 +186,7 @@ class BasicNet(nn.Module):
             for b in range(n_batches):
                 self.optimizer.zero_grad()
 
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
 
                 X_next = X[idx_next]
                 y_next = y[idx_next]
@@ -209,7 +203,7 @@ class BasicNet(nn.Module):
 
                 batch_loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)  # type: ignore
 
                 self.optimizer.step()
 
@@ -269,7 +263,7 @@ class RepresentationNet(nn.Module):
         n_layers: int = DEFAULT_LAYERS_R,
         n_units: int = DEFAULT_UNITS_R,
         nonlin: str = DEFAULT_NONLIN,
-        batch_norm: bool = True
+        batch_norm: bool = True,
     ) -> None:
         super(RepresentationNet, self).__init__()
         if nonlin not in list(NONLIN.keys()):
@@ -291,7 +285,7 @@ class RepresentationNet(nn.Module):
         self.model = nn.Sequential(*layers).to(DEVICE)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return self.model(X)
+        return self.model(X)  # pylint: disable=not-callable
 
 
 class PropensityNet(nn.Module):
@@ -357,7 +351,7 @@ class PropensityNet(nn.Module):
         n_iter_min: int = DEFAULT_N_ITER_MIN,
         clipping_value: int = 1,
         batch_norm: bool = True,
-        early_stopping: bool = True
+        early_stopping: bool = True,
     ) -> None:
         super(PropensityNet, self).__init__()
         if nonlin not in list(NONLIN.keys()):
@@ -367,9 +361,9 @@ class PropensityNet(nn.Module):
 
         if batch_norm:
             layers = [
-            nn.Linear(in_features=n_unit_in, out_features=n_units_out_prop),
-            nn.BatchNorm1d(n_units_out_prop),
-            NL(),
+                nn.Linear(in_features=n_unit_in, out_features=n_units_out_prop),
+                nn.BatchNorm1d(n_units_out_prop),
+                NL(),
             ]
         else:
             layers = [
@@ -380,20 +374,17 @@ class PropensityNet(nn.Module):
         for i in range(n_layers_out_prop - 1):
             if batch_norm:
                 layers.extend(
-                [
-                    nn.Linear(
-                        in_features=n_units_out_prop, out_features=n_units_out_prop
-                    ),
-                    nn.BatchNorm1d(n_units_out_prop),
-                    NL(),
-                ]
-            )
+                    [
+                        nn.Linear(in_features=n_units_out_prop, out_features=n_units_out_prop),
+                        nn.BatchNorm1d(n_units_out_prop),
+                        NL(),
+                    ]
+                )
             else:
                 layers.extend(
                     [
-                        nn.Linear(
-                            in_features=n_units_out_prop, out_features=n_units_out_prop
-                        ),NL(),
+                        nn.Linear(in_features=n_units_out_prop, out_features=n_units_out_prop),
+                        NL(),
                     ]
                 )
         layers.extend(
@@ -416,30 +407,24 @@ class PropensityNet(nn.Module):
         self.clipping_value = clipping_value
         self.early_stopping = early_stopping
 
-        self.optimizer = torch.optim.Adam(
-            self.parameters(), lr=lr, weight_decay=weight_decay
-        )
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)  # type: ignore
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return self.model(X)
+        return self.model(X)  # pylint: disable=not-callable
 
-    def get_importance_weights(
-        self, X: torch.Tensor, w: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def get_importance_weights(self, X: torch.Tensor, w: Optional[torch.Tensor] = None) -> torch.Tensor:
         p_pred = self.forward(X).squeeze()[:, 1]
-        return compute_importance_weights(p_pred, w, self.weighting_strategy, {})
+        return compute_importance_weights(p_pred, w, self.weighting_strategy, {})  # type: ignore
 
     def loss(self, y_pred: torch.Tensor, y_target: torch.Tensor) -> torch.Tensor:
         return nn.NLLLoss()(torch.log(y_pred + EPS), y_target)
 
-    def train(self, X: torch.Tensor, y: torch.Tensor) -> "PropensityNet":
+    def train(self, X: torch.Tensor, y: torch.Tensor) -> "PropensityNet":  # pylint: disable=arguments-differ
         X = self._check_tensor(X)
         y = self._check_tensor(y).long()
 
         # get validation split (can be none)
-        X, y, X_val, y_val, val_string = make_val_split(
-            X, y, val_split_prop=self.val_split_prop, seed=self.seed
-        )
+        X, y, X_val, y_val, val_string = make_val_split(X, y, val_split_prop=self.val_split_prop, seed=self.seed)
         y_val = y_val.squeeze()
         n = X.shape[0]  # could be different from before due to split
 
@@ -458,9 +443,7 @@ class PropensityNet(nn.Module):
             for b in range(n_batches):
                 self.optimizer.zero_grad()
 
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
 
                 X_next = X[idx_next]
                 y_next = y[idx_next].squeeze()
@@ -471,7 +454,7 @@ class PropensityNet(nn.Module):
 
                 batch_loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)  # type: ignore
 
                 self.optimizer.step()
                 train_loss.append(batch_loss.detach())
@@ -512,7 +495,7 @@ class BaseCATEEstimator(nn.Module):
     The interface has train/forward API for PyTorch-based models and fit/predict API for sklearn-based models.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=useless-super-delegation
         self,
     ) -> None:
         super(BaseCATEEstimator, self).__init__()
@@ -541,12 +524,12 @@ class BaseCATEEstimator(nn.Module):
 
         hat_te = self.predict(X)
 
-        return torch.sqrt(torch.mean(((y[:, 1] - y[:, 0]) - hat_te) ** 2))
+        return torch.sqrt(torch.mean(((y[:, 1] - y[:, 0]) - hat_te) ** 2))  # type: ignore
 
     @abc.abstractmethod
     @check_input_train
     @benchmark
-    def train(
+    def train(  # pylint: disable=arguments-differ
         self,
         X: torch.Tensor,
         y: torch.Tensor,
@@ -564,7 +547,7 @@ class BaseCATEEstimator(nn.Module):
         w: torch.Tensor
             Treatment indicator
         """
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     @benchmark
     def fit(
@@ -610,7 +593,7 @@ class BaseCATEEstimator(nn.Module):
         -------
         potential outcomes probabilities
         """
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def _check_tensor(self, X: torch.Tensor) -> torch.Tensor:
         if isinstance(X, torch.Tensor):

@@ -104,7 +104,7 @@ class BasicDragonNet(BaseCATEEstimator):
         early_stopping: bool = True,
         prop_loss_multiplier: float = 1,
         n_iter_min: int = DEFAULT_N_ITER_MIN,
-        patience: int = DEFAULT_PATIENCE
+        patience: int = DEFAULT_PATIENCE,
     ) -> None:
         super(BasicDragonNet, self).__init__()
 
@@ -136,7 +136,7 @@ class BasicDragonNet(BaseCATEEstimator):
                     n_layers_out=n_layers_out,
                     n_units_out=n_units_out,
                     nonlin=nonlin,
-                    batch_norm=batch_norm
+                    batch_norm=batch_norm,
                 )
             )
         self._propensity_estimator = propensity_estimator
@@ -155,9 +155,7 @@ class BasicDragonNet(BaseCATEEstimator):
             else:
                 return (y_pred - y_true) ** 2
 
-        def po_loss(
-            po_pred: torch.Tensor, y_true: torch.Tensor, t_true: torch.Tensor
-        ) -> torch.Tensor:
+        def po_loss(po_pred: torch.Tensor, y_true: torch.Tensor, t_true: torch.Tensor) -> torch.Tensor:
             y0_pred = po_pred[:, 0]
             y1_pred = po_pred[:, 1]
 
@@ -170,10 +168,7 @@ class BasicDragonNet(BaseCATEEstimator):
             t_pred = t_pred + EPS
             return nn.CrossEntropyLoss()(t_pred, t_true)
 
-        return (
-            po_loss(po_pred, y_true, t_true) +
-            self.prop_loss_multiplier*prop_loss(t_pred, t_true) + discrepancy
-        )
+        return po_loss(po_pred, y_true, t_true) + self.prop_loss_multiplier * prop_loss(t_pred, t_true) + discrepancy
 
     def train(
         self,
@@ -214,7 +209,7 @@ class BasicDragonNet(BaseCATEEstimator):
             + list(self._po_estimators[1].parameters())
             + list(self._propensity_estimator.parameters())
         )
-        optimizer = torch.optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)  # type: ignore
 
         # training
         val_loss_best = LARGE_VAL
@@ -226,9 +221,7 @@ class BasicDragonNet(BaseCATEEstimator):
             for b in range(n_batches):
                 optimizer.zero_grad()
 
-                idx_next = train_indices[
-                    (b * batch_size) : min((b + 1) * batch_size, n - 1)
-                ]
+                idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
 
                 X_next = X[idx_next]
                 y_next = y[idx_next].squeeze()
@@ -259,15 +252,13 @@ class BasicDragonNet(BaseCATEEstimator):
                             break
                     if i % self.n_iter_print == 0:
                         log.info(
-                        f"[{self.name}] Epoch: {i}, current {val_string} loss: {val_loss} train_loss: {torch.mean(train_loss)}"
-                    )
+                            f"[{self.name}] Epoch: {i}, current {val_string} loss: {val_loss} train_loss: {torch.mean(train_loss)}"
+                        )
 
         return self
 
     @abc.abstractmethod
-    def _step(
-        self, X: torch.Tensor, w: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _step(self, X: torch.Tensor, w: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         ...
 
     def _forward(self, X: torch.Tensor) -> torch.Tensor:
@@ -298,13 +289,11 @@ class BasicDragonNet(BaseCATEEstimator):
         outcome = y1_preds - y0_preds
 
         if return_po:
-            return outcome, y0_preds, y1_preds
+            return outcome, y0_preds, y1_preds  # type: ignore
 
         return outcome
 
-    def _maximum_mean_discrepancy(
-        self, X: torch.Tensor, w: torch.Tensor
-    ) -> torch.Tensor:
+    def _maximum_mean_discrepancy(self, X: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
         n = w.shape[0]
         n_t = torch.sum(w)
 
@@ -341,7 +330,7 @@ class TARNet(BasicDragonNet):
             n_layers_out_prop=n_layers_out_prop,
             n_units_out_prop=n_units_out_prop,
             nonlin=nonlin,
-            batch_norm=batch_norm
+            batch_norm=batch_norm,
         ).to(DEVICE)
         super(TARNet, self).__init__(
             "TARNet",
@@ -355,9 +344,7 @@ class TARNet(BasicDragonNet):
         )
         self.prop_loss_multiplier = 0
 
-    def _step(
-        self, X: torch.Tensor, w: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _step(self, X: torch.Tensor, w: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         repr_preds = self._repr_estimator(X).squeeze()
 
         y0_preds = self._po_estimators[0](repr_preds).squeeze()
@@ -394,7 +381,7 @@ class DragonNet(BasicDragonNet):
             n_layers_out_prop=n_layers_out_prop,
             n_units_out_prop=n_units_out_prop,
             nonlin=nonlin,
-            batch_norm=batch_norm
+            batch_norm=batch_norm,
         ).to(DEVICE)
         super(DragonNet, self).__init__(
             "DragonNet",
@@ -403,12 +390,10 @@ class DragonNet(BasicDragonNet):
             binary_y=binary_y,
             nonlin=nonlin,
             batch_norm=batch_norm,
-            **kwargs
+            **kwargs,
         )
 
-    def _step(
-        self, X: torch.Tensor, w: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _step(self, X: torch.Tensor, w: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         repr_preds = self._repr_estimator(X).squeeze()
 
         y0_preds = self._po_estimators[0](repr_preds).squeeze()

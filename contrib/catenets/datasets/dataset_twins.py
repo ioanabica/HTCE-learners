@@ -18,7 +18,6 @@ import contrib.catenets.logger as log
 
 from .network import download_if_needed
 
-
 DATASET = "Twin_Data.csv.gz"
 URL = "https://bitbucket.org/mvdschaar/mlforhealthlabpub/raw/0b0190bcd38a76c405c805f1ca774971fcd85233/data/twins/Twin_Data.csv.gz"  # noqa: E501
 
@@ -60,7 +59,7 @@ def preprocess(
     """
     np.random.seed(seed)
     random.seed(seed)
-    
+
     # Load original data (11400 patients, 30 features, 2 dimensional potential outcomes)
     df = pd.read_csv(fn_csv)
 
@@ -102,7 +101,9 @@ def preprocess(
     cat_list = ["adequacy"] + other_list2
 
     for feat in medrisk_list:
-        df[feat] = df[feat].apply(lambda x: df[feat].mode()[0] if x in [8, 9] else x)
+        df[feat] = df[feat].apply(
+            lambda x: df[feat].mode()[0] if x in [8, 9] else x  # pylint: disable=cell-var-from-loop
+        )
 
     for feat in other_list:
         df.loc[df[feat] == 99, feat] = df.loc[df[feat] != 99, feat].mean()
@@ -110,9 +111,7 @@ def preprocess(
     df_features = df[con_list + bin_list]
 
     for feat in cat_list:
-        df_features = pd.concat(
-            [df_features, pd.get_dummies(df[feat], prefix=feat)], axis=1
-        )
+        df_features = pd.concat([df_features, pd.get_dummies(df[feat], prefix=feat)], axis=1)
 
     # Define features
     feat_list = [
@@ -179,7 +178,7 @@ def preprocess(
         coef = np.random.uniform(-0.1, 0.1, size=[np.shape(x)[1], 1])
         prob = 1 / (1 + np.exp(-np.matmul(x, coef)))
 
-    w = np.random.binomial(1, prob)
+    w = np.random.binomial(1, prob)  # type: ignore
     y = y1 * w + y0 * (1 - w)
 
     potential_y = np.vstack((y0, y1)).T
@@ -188,7 +187,7 @@ def preprocess(
     if train_ratio < 1:
         idx = np.random.permutation(no)
         train_idx = idx[: int(train_ratio * no)]
-        test_idx = idx[int(train_ratio * no):]
+        test_idx = idx[int(train_ratio * no) :]
 
         train_x = x[train_idx, :]
         train_w = w[train_idx]

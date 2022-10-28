@@ -46,9 +46,7 @@ def make_val_split(
 
     # make actual split
     if w is None:
-        X_t, X_val, y_t, y_val = train_test_split(
-            X, y, test_size=val_split_prop, random_state=seed, shuffle=True
-        )
+        X_t, X_val, y_t, y_val = train_test_split(X, y, test_size=val_split_prop, random_state=seed, shuffle=True)
         return X_t, y_t, X_val, y_val, VALIDATION_STRING
 
     if stratify_w:
@@ -81,20 +79,13 @@ def heads_l2_penalty(
     # Compute l2 penalty for output heads. Either seperately, or regularizing their difference
 
     # get l2-penalty for first head
-    weightsq_0 = penalty_0 * sum(
-        [jnp.sum(params_0[i][0] ** 2) for i in range(0, 2 * n_layers_out + 1, 2)]
-    )
+    weightsq_0 = penalty_0 * sum([jnp.sum(params_0[i][0] ** 2) for i in range(0, 2 * n_layers_out + 1, 2)])
 
     # get l2-penalty for second head
     if reg_diff:
         weightsq_1 = penalty_1 * sum(
-            [
-                jnp.sum((params_1[i][0] - params_0[i][0]) ** 2)
-                for i in range(0, 2 * n_layers_out + 1, 2)
-            ]
+            [jnp.sum((params_1[i][0] - params_0[i][0]) ** 2) for i in range(0, 2 * n_layers_out + 1, 2)]
         )
     else:
-        weightsq_1 = penalty_1 * sum(
-            [jnp.sum(params_1[i][0] ** 2) for i in range(0, 2 * n_layers_out + 1, 2)]
-        )
+        weightsq_1 = penalty_1 * sum([jnp.sum(params_1[i][0] ** 2) for i in range(0, 2 * n_layers_out + 1, 2)])
     return weightsq_1 + weightsq_0

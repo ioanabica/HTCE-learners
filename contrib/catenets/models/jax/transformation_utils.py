@@ -112,7 +112,7 @@ def ra_te_transformation(
     res: array-like of shape (n_samples,)
         Regression adjusted transformation
     """
-    return w * (y - mu_0) + (1 - w) * (mu_1 - y)
+    return w * (y - mu_0) + (1 - w) * (mu_1 - y)  # type: ignore
 
 
 TRANSFORMATION_DICT = {

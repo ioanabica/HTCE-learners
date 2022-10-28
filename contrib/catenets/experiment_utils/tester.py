@@ -12,7 +12,7 @@ from contrib.catenets.experiment_utils.torch_metrics import abs_error_ATE, sqrt_
 
 def generate_score(metric: np.ndarray) -> Tuple[float, float]:
     percentile_val = 1.96
-    return (np.mean(metric), percentile_val * np.std(metric) / np.sqrt(len(metric)))
+    return (np.mean(metric), percentile_val * np.std(metric) / np.sqrt(len(metric)))  # type: ignore
 
 
 def print_score(score: Tuple[float, float]) -> str:
@@ -51,11 +51,11 @@ def evaluate_treatments_model(
 
         try:
             te_pred = model.predict(X_test).detach().cpu().numpy()
-        except BaseException:
+        except BaseException:  # pylint: disable=broad-except
             te_pred = np.asarray(model.predict(X_test))
 
-        metric_ate[indx] = abs_error_ATE(Y_full_test, te_pred)
-        metric_pehe[indx] = sqrt_PEHE(Y_full_test, te_pred)
+        metric_ate[indx] = abs_error_ATE(Y_full_test, te_pred)  # type: ignore
+        metric_pehe[indx] = sqrt_PEHE(Y_full_test, te_pred)  # type: ignore
         indx += 1
 
     output_pehe = generate_score(metric_pehe)

@@ -10,8 +10,8 @@ from typing import Any, Callable, List, Tuple
 import jax.numpy as jnp
 import numpy as onp
 from jax import grad, jit, random
-from jax.experimental import optimizers
-from jax.experimental.stax import sigmoid
+from jax.example_libraries import optimizers
+from jax.example_libraries.stax import sigmoid  # type: ignore
 
 import contrib.catenets.logger as log
 from contrib.catenets.models.constants import (
@@ -155,7 +155,7 @@ def predict_offsetnet(
 
     if not binary_y:
         if return_po:
-            return offset, mu_0, mu_0 + offset
+            return offset, mu_0, mu_0 + offset  # type: ignore
         else:
             return offset
     else:
@@ -163,7 +163,7 @@ def predict_offsetnet(
         po_0 = sigmoid(mu_0)
         po_1 = sigmoid(mu_0 + offset)
         if return_po:
-            return po_1 - po_0, po_0, po_1
+            return po_1 - po_0, po_0, po_1  # type: ignore
         else:
             return po_1 - po_0
 
@@ -200,7 +200,7 @@ def train_offsetnet(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(  # pylint: disable=unbalanced-tuple-unpacking
         X, y, w, val_split_prop=val_split_prop, seed=seed
     )
     n = X.shape[0]  # could be different from before due to split
@@ -218,9 +218,9 @@ def train_offsetnet(
     def init_fun_offset(rng: float, input_shape: Tuple) -> Tuple:
         # chain together the layers
         # param should look like [param_base, param_offset]
-        rng, layer_rng = random.split(rng)
+        rng, layer_rng = random.split(rng)  # type: ignore
         _, param_base = init_fun_head(layer_rng, input_shape)
-        rng, layer_rng = random.split(rng)
+        rng, layer_rng = random.split(rng)  # type: ignore
         input_shape, param_offset = init_fun_head(layer_rng, input_shape)
         return input_shape, [param_base, param_offset]
 
@@ -228,9 +228,7 @@ def train_offsetnet(
     if not binary_y:
 
         @jit
-        def loss_offsetnet(
-            params: jnp.ndarray, batch: jnp.ndarray, penalty: float, penalty_l2_p: float
-        ) -> jnp.ndarray:
+        def loss_offsetnet(params: jnp.ndarray, batch: jnp.ndarray, penalty: float, penalty_l2_p: float) -> jnp.ndarray:  # type: ignore
             # params: list[representation, head_0, head_1]
             # batch: (X, y, w)
             inputs, targets, w = batch
@@ -240,10 +238,10 @@ def train_offsetnet(
             weightsq_head = heads_l2_penalty(
                 params[0],
                 params[1],
-                n_layers_out + n_layers_r,
-                False,
-                penalty,
-                penalty_l2_p,
+                n_layers_out + n_layers_r,  # type: ignore
+                False,  # type: ignore
+                penalty,  # type: ignore
+                penalty_l2_p,  # type: ignore
             )
             if not avg_objective:
                 return jnp.sum((preds - targets) ** 2) + 0.5 * weightsq_head
@@ -267,25 +265,17 @@ def train_offsetnet(
             weightsq_head = heads_l2_penalty(
                 params[0],
                 params[1],
-                n_layers_out + n_layers_r,
-                False,
-                penalty,
-                penalty_l2_p,
+                n_layers_out + n_layers_r,  # type: ignore
+                False,  # type: ignore
+                penalty,  # type: ignore
+                penalty_l2_p,  # type: ignore
             )
             if not avg_objective:
-                return (
-                    -jnp.sum(
-                        (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-                    )
-                    + 0.5 * weightsq_head
-                )
+                return -jnp.sum((targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))) + 0.5 * weightsq_head
             else:
                 n_batch = y.shape[0]
                 return (
-                    -jnp.sum(
-                        (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-                    )
-                    / n_batch
+                    -jnp.sum((targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))) / n_batch
                     + 0.5 * weightsq_head
                 )
 
@@ -293,17 +283,13 @@ def train_offsetnet(
     opt_init, opt_update, get_params = optimizers.adam(step_size=step_size)
 
     @jit
-    def update(
-        i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_l2_p: float
-    ) -> jnp.ndarray:
+    def update(i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_l2_p: float) -> jnp.ndarray:
         # updating function
-        params = get_params(state)
-        return opt_update(
-            i, grad(loss_offsetnet)(params, batch, penalty_l2, penalty_l2_p), state
-        )
+        params = get_params(state)  # type: ignore
+        return opt_update(i, grad(loss_offsetnet)(params, batch, penalty_l2, penalty_l2_p), state)  # type: ignore
 
     # initialise states
-    _, init_params = init_fun_offset(rng_key, input_shape)
+    _, init_params = init_fun_offset(rng_key, input_shape)  # type: ignore
     opt_state = opt_init(init_params)
 
     # calculate number of batches per epoch
@@ -321,26 +307,20 @@ def train_offsetnet(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :], w[idx_next]
-            opt_state = update(
-                i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_l2_p
-            )
+            opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_l2_p)
 
         if (i % n_iter_print == 0) or early_stopping:
             params_curr = get_params(opt_state)
-            l_curr = loss_offsetnet(
-                params_curr, (X_val, y_val, w_val), penalty_l2, penalty_l2_p
-            )
+            l_curr = loss_offsetnet(params_curr, (X_val, y_val, w_val), penalty_l2, penalty_l2_p)
 
         if i % n_iter_print == 0:
-            log.info(f"Epoch: {i}, current {val_string} loss {l_curr}")
+            log.info(f"Epoch: {i}, current {val_string} loss {l_curr}")  # type: ignore
 
         if early_stopping and ((i + 1) * n_batches > n_iter_min):
-            if l_curr < l_best:
-                l_best = l_curr
+            if l_curr < l_best:  # type: ignore
+                l_best = l_curr  # type: ignore
                 p_curr = 0
             else:
                 p_curr = p_curr + 1
@@ -348,10 +328,10 @@ def train_offsetnet(
             if p_curr > patience:
                 if return_val_loss:
                     # return loss without penalty
-                    l_final = loss_offsetnet(params_curr, (X_val, y_val, w_val), 0, 0)
-                    return params_curr, pred_funs, l_final
+                    l_final = loss_offsetnet(params_curr, (X_val, y_val, w_val), 0, 0)  # type: ignore
+                    return params_curr, pred_funs, l_final  # type: ignore
 
-                return params_curr, pred_funs
+                return params_curr, pred_funs  # type: ignore
 
     # return the parameters
     trained_params = get_params(opt_state)

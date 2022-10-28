@@ -31,7 +31,10 @@ from contrib.catenets.models.torch.base import (
     BasicNet,
     PropensityNet,
 )
-from contrib.catenets.models.torch.utils.model_utils import predict_wrapper, train_wrapper
+from contrib.catenets.models.torch.utils.model_utils import (
+    predict_wrapper,
+    train_wrapper,
+)
 from contrib.catenets.models.torch.utils.transformations import (
     dr_transformation_cate,
     pw_transformation_cate,
@@ -129,7 +132,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
         patience: int = DEFAULT_PATIENCE,
         n_iter_min: int = DEFAULT_N_ITER_MIN,
         batch_norm: bool = True,
-        early_stopping: bool = True
+        early_stopping: bool = True,
     ):
         super(PseudoOutcomeLearner, self).__init__()
         self.n_unit_in = n_unit_in
@@ -188,7 +191,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
             patience=self.patience,
             n_iter_min=self.n_iter_min,
             batch_norm=self.batch_norm,
-            early_stopping=self.early_stopping
+            early_stopping=self.early_stopping,
         ).to(DEVICE)
 
     def _generate_po_estimator(self, name: str = "po_estimator") -> nn.Module:
@@ -212,12 +215,10 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
             patience=self.patience,
             n_iter_min=self.n_iter_min,
             batch_norm=self.batch_norm,
-            early_stopping=self.early_stopping
+            early_stopping=self.early_stopping,
         ).to(DEVICE)
 
-    def _generate_propensity_estimator(
-        self, name: str = "propensity_estimator"
-    ) -> nn.Module:
+    def _generate_propensity_estimator(self, name: str = "propensity_estimator") -> nn.Module:
         if self.weighting_strategy is None:
             raise ValueError("Invalid weighting_strategy for PropensityNet")
         return PropensityNet(
@@ -236,12 +237,10 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
             nonlin=self.nonlin,
             val_split_prop=self.val_split_prop,
             batch_norm=self.batch_norm,
-            early_stopping=self.early_stopping
+            early_stopping=self.early_stopping,
         ).to(DEVICE)
 
-    def train(
-        self, X: torch.Tensor, y: torch.Tensor, w: torch.Tensor
-    ) -> "PseudoOutcomeLearner":
+    def train(self, X: torch.Tensor, y: torch.Tensor, w: torch.Tensor) -> "PseudoOutcomeLearner":
         """
         Train treatment effects nets.
 
@@ -264,9 +263,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
         if self.n_folds == 1:
             pred_mask = np.ones(n, dtype=bool)
             # fit plug-in models
-            mu_0_pred, mu_1_pred, p_pred = self._first_step(
-                X, y, w, pred_mask, pred_mask
-            )
+            mu_0_pred, mu_1_pred, p_pred = self._first_step(X, y, w, pred_mask, pred_mask)  # type: ignore
         else:
             mu_0_pred, mu_1_pred, p_pred = (
                 torch.zeros(n).to(DEVICE),
@@ -275,13 +272,11 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
             )
 
             # create folds stratified by treatment assignment to ensure balance
-            splitter = StratifiedKFold(
-                n_splits=self.n_folds, shuffle=True, random_state=self.seed
-            )
+            splitter = StratifiedKFold(n_splits=self.n_folds, shuffle=True, random_state=self.seed)
 
             for train_index, test_index in splitter.split(X.cpu(), w.cpu()):
                 # create masks
-                pred_mask = torch.zeros(n, dtype=bool).to(DEVICE)
+                pred_mask = torch.zeros(n, dtype=bool).to(DEVICE)  # type: ignore
                 pred_mask[test_index] = 1
 
                 # fit plug-in te_estimator
@@ -296,7 +291,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
             p = p_pred
 
         # STEP 2: direct TE estimation
-        self._second_step(X, y, w, p, mu_0_pred, mu_1_pred)
+        self._second_step(X, y, w, p, mu_0_pred, mu_1_pred)  # type: ignore
 
         return self
 
@@ -314,9 +309,7 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
             Predicted treatment effects
         """
         if return_po:
-            raise NotImplementedError(
-                "PseudoOutcomeLearners have no Potential outcome predictors."
-            )
+            raise NotImplementedError("PseudoOutcomeLearners have no Potential outcome predictors.")
         X = self._check_tensor(X).float()
         return predict_wrapper(self._te_estimator, X)
 
@@ -372,22 +365,18 @@ class PseudoOutcomeLearner(BaseCATEEstimator):
         self,
         X: torch.Tensor,
         w: torch.Tensor,
-        fit_mask: torch.tensor,
+        fit_mask: torch.tensor,  # type: ignore
         pred_mask: torch.Tensor,
     ) -> torch.Tensor:
         # split sample
         X_fit, W_fit = X[fit_mask, :], w[fit_mask]
 
         # fit propensity estimator
-        temp_propensity_estimator = self._generate_propensity_estimator(
-            "prop_estimator_impute_propensity"
-        )
+        temp_propensity_estimator = self._generate_propensity_estimator("prop_estimator_impute_propensity")
         train_wrapper(temp_propensity_estimator, X_fit, W_fit)
 
         # predict propensity on hold out
-        return temp_propensity_estimator.get_importance_weights(
-            X[pred_mask, :], w[pred_mask]
-        )
+        return temp_propensity_estimator.get_importance_weights(X[pred_mask, :], w[pred_mask])  # type: ignore
 
     def _impute_unconditional_mean(
         self,
@@ -453,7 +442,7 @@ class PWLearner(PseudoOutcomeLearner):
 
         mu0_pred, mu1_pred = np.nan, np.nan  # not needed
         p_pred = self._impute_propensity(X, w, fit_mask, pred_mask).squeeze()
-        return mu0_pred, mu1_pred, p_pred
+        return mu0_pred, mu1_pred, p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -483,7 +472,7 @@ class RALearner(PseudoOutcomeLearner):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu0_pred, mu1_pred = self._impute_pos(X, y, w, fit_mask, pred_mask)
         p_pred = np.nan  # not needed
-        return mu0_pred.squeeze(), mu1_pred.squeeze(), p_pred
+        return mu0_pred.squeeze(), mu1_pred.squeeze(), p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -515,7 +504,7 @@ class ULearner(PseudoOutcomeLearner):
         mu_pred = self._impute_unconditional_mean(X, y, fit_mask, pred_mask).squeeze()
         mu1_pred = np.nan  # only have one thing to impute here
         p_pred = self._impute_propensity(X, w, fit_mask, pred_mask).squeeze()
-        return mu_pred, mu1_pred, p_pred
+        return mu_pred, mu1_pred, p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -547,7 +536,7 @@ class RLearner(PseudoOutcomeLearner):
         mu_pred = self._impute_unconditional_mean(X, y, fit_mask, pred_mask).squeeze()
         mu1_pred = np.nan  # only have one thing to impute here
         p_pred = self._impute_propensity(X, w, fit_mask, pred_mask).squeeze()
-        return mu_pred, mu1_pred, p_pred
+        return mu_pred, mu1_pred, p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -559,9 +548,7 @@ class RLearner(PseudoOutcomeLearner):
         mu_1: torch.Tensor,
     ) -> None:
         pseudo_outcome = u_transformation_cate(y, w, p, mu_0)
-        train_wrapper(
-            self._te_estimator, X, pseudo_outcome.detach(), weight=(w - p) ** 2
-        )
+        train_wrapper(self._te_estimator, X, pseudo_outcome.detach(), weight=(w - p) ** 2)
 
 
 class XLearner(PseudoOutcomeLearner):
@@ -592,7 +579,7 @@ class XLearner(PseudoOutcomeLearner):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu0_pred, mu1_pred = self._impute_pos(X, y, w, fit_mask, pred_mask)
         p_pred = np.nan
-        return mu0_pred.squeeze(), mu1_pred.squeeze(), p_pred
+        return mu0_pred.squeeze(), mu1_pred.squeeze(), p_pred  # type: ignore
 
     def _second_step(
         self,
@@ -630,13 +617,11 @@ class XLearner(PseudoOutcomeLearner):
             Predicted treatment effects
         """
         if return_po:
-            raise NotImplementedError(
-                "PseudoOutcomeLearners have no Potential outcome predictors."
-            )
+            raise NotImplementedError("PseudoOutcomeLearners have no Potential outcome predictors.")
         X = self._check_tensor(X).float().to(DEVICE)
         tau0_pred = predict_wrapper(self._te_estimator_0, X)
         tau1_pred = predict_wrapper(self._te_estimator_1, X)
 
-        weight = self._propensity_estimator.get_importance_weights(X)
+        weight = self._propensity_estimator.get_importance_weights(X)  # type: ignore
 
         return weight * tau0_pred + (1 - weight) * tau1_pred

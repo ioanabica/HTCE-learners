@@ -8,8 +8,8 @@ from typing import Any, Callable, List, Optional, Tuple
 import jax.numpy as jnp
 import numpy as onp
 from jax import grad, jit, random
-from jax.experimental import optimizers, stax
-from jax.experimental.stax import Dense, Elu, Relu, Sigmoid
+from jax.example_libraries import optimizers, stax
+from jax.example_libraries.stax import Dense, Elu, Relu, Sigmoid
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.model_selection import ParameterGrid
 
@@ -37,9 +37,7 @@ from contrib.catenets.models.jax.model_utils import (
 )
 
 
-def ReprBlock(
-    n_layers: int = 3, n_units: int = 100, nonlin: str = DEFAULT_NONLIN
-) -> Any:
+def ReprBlock(n_layers: int = 3, n_units: int = 100, nonlin: str = DEFAULT_NONLIN) -> Any:
     # Creates a representation block using jax.stax
     # create first layer
     if nonlin == "elu":
@@ -117,8 +115,8 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
         y: np.array
             Expected potential outcome vector
         """
-        X = check_X_is_np(X)
-        y = check_X_is_np(y)
+        X = check_X_is_np(X)  # type: ignore
+        y = check_X_is_np(y)  # type: ignore
         if len(X) != len(y):
             raise ValueError("X/y length mismatch for score")
         if y.shape[-1] != 2:
@@ -157,8 +155,8 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
         # some quick input checks
         if p is not None:
             raise NotImplementedError("Only two-step-nets take p as input. ")
-        X = check_X_is_np(X)
-        self._check_inputs(w, p)
+        X = check_X_is_np(X)  # type: ignore
+        self._check_inputs(w, p)  # type: ignore
 
         train_func = self._get_train_function()
         train_params = self.get_params()
@@ -171,9 +169,7 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
     def _get_predict_function(self) -> Callable:
         ...
 
-    def predict(
-        self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False
-    ) -> jnp.ndarray:
+    def predict(self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False) -> jnp.ndarray:
         """
         Predict treatment effect estimates using a CATENet. Depending on method, can also return
         potential outcome estimate and propensity score estimate.
@@ -191,7 +187,7 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
         -------
         array of CATE estimates, optionally also potential outcomes and propensity
         """
-        X = check_X_is_np(X)
+        X = check_X_is_np(X)  # type: ignore
         predict_func = self._get_predict_function()
         return predict_func(
             X,
@@ -210,7 +206,7 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
         if not ((w == 0) | (w == 1)).all():
             raise ValueError("W should be binary")
 
-    def fit_and_select_params(
+    def fit_and_select_params(  # pylint: disable=dangerous-default-value
         self,
         X: jnp.ndarray,
         y: jnp.ndarray,
@@ -221,10 +217,10 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
         # some quick input checks
         if param_grid is None:
             raise ValueError("No param_grid to evaluate. ")
-        X = check_X_is_np(X)
-        self._check_inputs(w, p)
+        X = check_X_is_np(X)  # type: ignore
+        self._check_inputs(w, p)  # type: ignore
 
-        param_grid = ParameterGrid(param_grid)
+        param_grid = ParameterGrid(param_grid)  # type: ignore
         self_param_dict = self.get_params()
         train_function = self._get_train_function()
 
@@ -235,9 +231,7 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
         for param_setting in param_grid:
             log.debug(
                 "Testing parameter setting: "
-                + " ".join(
-                    [key + ": " + str(value) for key, value in param_setting.items()]
-                )
+                + " ".join([key + ": " + str(value) for key, value in param_setting.items()])
             )
             # replace params
             train_param_dict = {
@@ -245,13 +239,9 @@ class BaseCATENet(BaseEstimator, RegressorMixin, abc.ABC):
                 for key, val in self_param_dict.items()
             }
             if p is not None:
-                params, funs, val_loss = train_function(
-                    X, y, w, p=p, return_val_loss=True, **train_param_dict
-                )
+                params, funs, val_loss = train_function(X, y, w, p=p, return_val_loss=True, **train_param_dict)
             else:
-                params, funs, val_loss = train_function(
-                    X, y, w, return_val_loss=True, **train_param_dict
-                )
+                params, funs, val_loss = train_function(X, y, w, return_val_loss=True, **train_param_dict)
 
             models.append((params, funs))
             losses.append(val_loss)
@@ -302,9 +292,7 @@ def train_output_net_only(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y, X_val, y_val, val_string = make_val_split(
-        X, y, val_split_prop=val_split_prop, seed=seed
-    )
+    X, y, X_val, y_val, val_string = make_val_split(X, y, val_split_prop=val_split_prop, seed=seed)
     n = X.shape[0]  # could be different from before due to split
 
     # get output head
@@ -321,18 +309,11 @@ def train_output_net_only(
     if not binary_y:
         # define loss and grad
         @jit
-        def loss(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float
-        ) -> jnp.ndarray:
+        def loss(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float) -> jnp.ndarray:
             # mse loss function
             inputs, targets = batch
             preds = predict_fun(params, inputs)
-            weightsq = sum(
-                [
-                    jnp.sum(params[i][0] ** 2)
-                    for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)
-                ]
-            )
+            weightsq = sum([jnp.sum(params[i][0] ** 2) for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)])
             if not avg_objective:
                 return jnp.sum((preds - targets) ** 2) + 0.5 * penalty * weightsq
             else:
@@ -341,28 +322,18 @@ def train_output_net_only(
     else:
         # get loss and grad
         @jit
-        def loss(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float
-        ) -> jnp.ndarray:
+        def loss(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray], penalty: float) -> jnp.ndarray:
             # mse loss function
             inputs, targets = batch
             preds = predict_fun(params, inputs)
-            weightsq = sum(
-                [
-                    jnp.sum(params[i][0] ** 2)
-                    for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)
-                ]
-            )
+            weightsq = sum([jnp.sum(params[i][0] ** 2) for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)])
             if not avg_objective:
                 return (
-                    -jnp.sum(
-                        targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)
-                    )
-                    + 0.5 * penalty * weightsq
+                    -jnp.sum(targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)) + 0.5 * penalty * weightsq
                 )
             else:
                 return (
-                    -jnp.average(
+                    -jnp.average(  # pylint: disable=invalid-unary-operand-type
                         targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)
                     )
                     + 0.5 * penalty * weightsq
@@ -375,9 +346,9 @@ def train_output_net_only(
     # set update function
     @jit
     def update(i: int, state: dict, batch: jnp.ndarray, penalty: float) -> jnp.ndarray:
-        params = get_params(state)
+        params = get_params(state)  # type: ignore
         g_params = grad(loss)(params, batch, penalty)
-        return opt_update(i, g_params, state)
+        return opt_update(i, g_params, state)  # type: ignore
 
     # initialise states
     _, init_params = init_fun(rng_key, input_shape)
@@ -396,9 +367,7 @@ def train_output_net_only(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :]
             opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2)
 
@@ -407,12 +376,12 @@ def train_output_net_only(
             l_curr = loss(params_curr, (X_val, y_val), penalty_l2)
 
         if i % n_iter_print == 0:
-            log.info(f"Epoch: {i}, current {val_string} loss: {l_curr}")
+            log.info(f"Epoch: {i}, current {val_string} loss: {l_curr}")  # type: ignore
 
         if early_stopping and ((i + 1) * n_batches > n_iter_min):
             # check if loss updated
-            if l_curr < l_best:
-                l_best = l_curr
+            if l_curr < l_best:  # type: ignore
+                l_best = l_curr  # type: ignore
                 p_curr = 0
             else:
                 p_curr = p_curr + 1

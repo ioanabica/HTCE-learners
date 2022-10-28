@@ -7,7 +7,7 @@ from typing import Any, Callable, List, Tuple
 import jax.numpy as jnp
 import numpy as onp
 from jax import grad, jit, random
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 
 import contrib.catenets.logger as log
 from contrib.catenets.models.constants import (
@@ -28,7 +28,11 @@ from contrib.catenets.models.constants import (
     DEFAULT_VAL_SPLIT,
     LARGE_VAL,
 )
-from contrib.catenets.models.jax.base import BaseCATENet, OutputHead, train_output_net_only
+from contrib.catenets.models.jax.base import (
+    BaseCATENet,
+    OutputHead,
+    train_output_net_only,
+)
 from contrib.catenets.models.jax.model_utils import (
     check_shape_1d_data,
     heads_l2_penalty,
@@ -213,8 +217,8 @@ def train_tnet(
             params_1, predict_fun_1, loss_1 = out_1
             return (params_0, params_1), (predict_fun_0, predict_fun_1), loss_1 + loss_0
 
-        params_0, predict_fun_0 = out_0
-        params_1, predict_fun_1 = out_1
+        params_0, predict_fun_0 = out_0  # pylint: disable=unbalanced-tuple-unpacking
+        params_1, predict_fun_1 = out_1  # pylint: disable=unbalanced-tuple-unpacking
     else:
         # train jointly by regularizing similarity
         params, predict_fun = _train_tnet_jointly(
@@ -264,7 +268,7 @@ def predict_t_net(
     mu_1 = predict_fun_1(params_1, X)
 
     if return_po:
-        return mu_1 - mu_0, mu_0, mu_1
+        return mu_1 - mu_0, mu_0, mu_1  # type: ignore
     else:
         return mu_1 - mu_0
 
@@ -303,13 +307,13 @@ def _train_tnet_jointly(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y, w, X_val, y_val, w_val, val_string = make_val_split(
+    X, y, w, X_val, y_val, w_val, val_string = make_val_split(  # pylint: disable=unbalanced-tuple-unpacking
         X, y, w, val_split_prop=val_split_prop, seed=seed
     )
     n = X.shape[0]  # could be different from before due to split
 
     # get output head functions (both heads share same structure)
-    init_fun_head, predict_fun_head = OutputHead(
+    init_fun_head, predict_fun_head = OutputHead(  # pylint: disable=unbalanced-tuple-unpacking
         n_layers_out=n_layers_out,
         n_units_out=n_units_out,
         binary_y=binary_y,
@@ -322,9 +326,7 @@ def _train_tnet_jointly(
     # loss functions for the head
     if not binary_y:
 
-        def loss_head(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
-        ) -> jnp.ndarray:
+        def loss_head(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> jnp.ndarray:
             # mse loss function
             inputs, targets, weights = batch
             preds = predict_fun_head(params, inputs)
@@ -332,16 +334,11 @@ def _train_tnet_jointly(
 
     else:
 
-        def loss_head(
-            params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
-        ) -> jnp.ndarray:
+        def loss_head(params: List, batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> jnp.ndarray:
             # mse loss function
             inputs, targets, weights = batch
             preds = predict_fun_head(params, inputs)
-            return -jnp.sum(
-                weights
-                * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds))
-            )
+            return -jnp.sum(weights * (targets * jnp.log(preds) + (1 - targets) * jnp.log(1 - preds)))
 
     @jit
     def loss_tnet(
@@ -362,10 +359,10 @@ def _train_tnet_jointly(
         weightsq_head = heads_l2_penalty(
             params[0],
             params[1],
-            n_layers_r + n_layers_out,
-            True,
-            penalty_l2,
-            penalty_diff,
+            n_layers_r + n_layers_out,  # type: ignore
+            True,  # type: ignore
+            penalty_l2,  # type: ignore
+            penalty_diff,  # type: ignore
         )
         if not avg_objective:
             return loss_0 + loss_1 + 0.5 * (weightsq_head)
@@ -377,14 +374,10 @@ def _train_tnet_jointly(
     opt_init, opt_update, get_params = optimizers.adam(step_size=step_size)
 
     @jit
-    def update(
-        i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_diff: float
-    ) -> jnp.ndarray:
+    def update(i: int, state: dict, batch: jnp.ndarray, penalty_l2: float, penalty_diff: float) -> jnp.ndarray:
         # updating function
-        params = get_params(state)
-        return opt_update(
-            i, grad(loss_tnet)(params, batch, penalty_l2, penalty_diff), state
-        )
+        params = get_params(state)  # type: ignore
+        return opt_update(i, grad(loss_tnet)(params, batch, penalty_l2, penalty_diff), state)  # type: ignore
 
     # initialise states
     if same_init:
@@ -411,41 +404,35 @@ def _train_tnet_jointly(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y[idx_next, :], w[idx_next]
-            opt_state = update(
-                i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_diff
-            )
+            opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2, penalty_diff)
 
         if (i % n_iter_print == 0) or early_stopping:
             params_curr = get_params(opt_state)
-            l_curr = loss_tnet(
-                params_curr, (X_val, y_val, w_val), penalty_l2, penalty_diff
-            )
+            l_curr = loss_tnet(params_curr, (X_val, y_val, w_val), penalty_l2, penalty_diff)
 
         if i % n_iter_print == 0:
-            log.debug(f"Epoch: {i}, current {val_string} loss {l_curr}")
+            log.debug(f"Epoch: {i}, current {val_string} loss {l_curr}")  # type: ignore
 
         if early_stopping and ((i + 1) * n_batches > n_iter_min):
-            if l_curr < l_best:
-                l_best = l_curr
+            if l_curr < l_best:  # type: ignore
+                l_best = l_curr  # type: ignore
                 p_curr = 0
-                params_best = params_curr
+                params_best = params_curr  # type: ignore
             else:
-                if onp.isnan(l_curr):
+                if onp.isnan(l_curr):  # type: ignore
                     # if diverged, return best
-                    return params_best, predict_fun_head
+                    return params_best, predict_fun_head  # type: ignore
                 p_curr = p_curr + 1
 
             if p_curr > patience:
                 if return_val_loss:
                     # return loss without penalty
-                    l_final = loss_tnet(params_curr, (X_val, y_val, w_val), 0, 0)
-                    return params_curr, predict_fun_head, l_final
+                    l_final = loss_tnet(params_curr, (X_val, y_val, w_val), 0, 0)  # type: ignore
+                    return params_curr, predict_fun_head, l_final  # type: ignore
 
-                return params_curr, predict_fun_head
+                return params_curr, predict_fun_head  # type: ignore
 
     # return the parameters
     trained_params = get_params(opt_state)
@@ -453,6 +440,6 @@ def _train_tnet_jointly(
     if return_val_loss:
         # return loss without penalty
         l_final = loss_tnet(get_params(opt_state), (X_val, y_val, w_val), 0, 0)
-        return trained_params, predict_fun_head, l_final
+        return trained_params, predict_fun_head, l_final  # type: ignore
 
-    return trained_params, predict_fun_head
+    return trained_params, predict_fun_head  # type: ignore

@@ -1,20 +1,18 @@
 import random
-import numpy as np
-
-from sklearn.metrics import mean_squared_error
-
-
 from typing import Any, Optional
 
+import numpy as np
 import torch
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
 from htce_learners.constants import DEFAULT_SEED, DEFAULT_VAL_SPLIT
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # type: ignore
 
 TRAIN_STRING = "training"
 VALIDATION_STRING = "validation"
+
 
 def flatten(_list):
     return [item for sublist in _list for item in sublist]
@@ -25,6 +23,7 @@ def check_tensor(X: torch.Tensor) -> torch.Tensor:
         return X.to(DEVICE)
     else:
         return torch.from_numpy(np.asarray(X)).to(DEVICE)
+
 
 def make_target_val_split(
     X_target_specific: torch.Tensor,
@@ -37,6 +36,7 @@ def make_target_val_split(
 ) -> Any:
     if val_split_prop == 0:
         # return original data
+        X = None
         if w is None:
             return X_target_specific, X_target_shared, y, X, y, TRAIN_STRING
 
@@ -47,24 +47,41 @@ def make_target_val_split(
     y = y.cpu()
     # make actual split
     if w is None:
-        X_target_specific_t, X_target_specific_val, X_target_shared_t, X_target_shared_val, y_t, y_val = train_test_split(
+        (
+            X_target_specific_t,
+            X_target_specific_val,
+            X_target_shared_t,
+            X_target_shared_val,
+            y_t,
+            y_val,
+        ) = train_test_split(
             X_target_specific, X_target_shared, y, test_size=val_split_prop, random_state=seed, shuffle=True
         )
         return (
-            X_target_specific_t.to(DEVICE),
-            X_target_shared_t.to(DEVICE),
-            y_t.to(DEVICE),
-            X_target_specific_val.to(DEVICE),
-            X_target_shared_val.to(DEVICE),
-            y_val.to(DEVICE),
+            X_target_specific_t.to(DEVICE),  # type: ignore
+            X_target_shared_t.to(DEVICE),  # type: ignore
+            y_t.to(DEVICE),  # type: ignore
+            X_target_specific_val.to(DEVICE),  # type: ignore
+            X_target_shared_val.to(DEVICE),  # type: ignore
+            y_val.to(DEVICE),  # type: ignore
             VALIDATION_STRING,
         )
 
     w = w.cpu()
     if stratify_w:
         # split to stratify by group
-        X_target_specific_t, X_target_specific_val, X_target_shared_t, X_target_shared_val, y_t, y_val, w_t, w_val = train_test_split(
-            X_target_specific, X_target_shared,
+        (
+            X_target_specific_t,
+            X_target_specific_val,
+            X_target_shared_t,
+            X_target_shared_val,
+            y_t,
+            y_val,
+            w_t,
+            w_val,
+        ) = train_test_split(
+            X_target_specific,
+            X_target_shared,
             y,
             w,
             test_size=val_split_prop,
@@ -73,23 +90,30 @@ def make_target_val_split(
             shuffle=True,
         )
     else:
-        X_target_specific_t, X_target_specific_val, X_target_shared_t, X_target_shared_val, y_t, y_val, w_t, w_val = train_test_split(
+        (
+            X_target_specific_t,
+            X_target_specific_val,
+            X_target_shared_t,
+            X_target_shared_val,
+            y_t,
+            y_val,
+            w_t,
+            w_val,
+        ) = train_test_split(
             X_target_specific, X_target_shared, y, w, test_size=val_split_prop, random_state=seed, shuffle=True
         )
 
     return (
-        X_target_specific_t.to(DEVICE),
-        X_target_shared_t.to(DEVICE),
-        y_t.to(DEVICE),
-        w_t.to(DEVICE),
-        X_target_specific_val.to(DEVICE),
-        X_target_shared_val.to(DEVICE),
-        y_val.to(DEVICE),
-        w_val.to(DEVICE),
+        X_target_specific_t.to(DEVICE),  # type: ignore
+        X_target_shared_t.to(DEVICE),  # type: ignore
+        y_t.to(DEVICE),  # type: ignore
+        w_t.to(DEVICE),  # type: ignore
+        X_target_specific_val.to(DEVICE),  # type: ignore
+        X_target_shared_val.to(DEVICE),  # type: ignore
+        y_val.to(DEVICE),  # type: ignore
+        w_val.to(DEVICE),  # type: ignore
         VALIDATION_STRING,
     )
-
-
 
 
 def enable_reproducible_results(seed=42):
@@ -111,11 +135,11 @@ def compute_cate_metrics(cate_true, y_true, w_true, mu0_pred, mu1_pred):
 
     pehe = np.sqrt(mean_squared_error(cate_true, cate_pred))
 
-    y_pred = w_true.reshape(len(cate_true), ) * mu1_pred.reshape(len(cate_true), ) + (
-            1
-            - w_true.reshape(
-        len(cate_true),
-    )
+    y_pred = w_true.reshape(len(cate_true),) * mu1_pred.reshape(len(cate_true),) + (
+        1
+        - w_true.reshape(
+            len(cate_true),
+        )
     ) * mu0_pred.reshape(
         len(cate_true),
     )

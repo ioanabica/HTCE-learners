@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as onp
 import pandas as pd
 from jax import grad, jit, random
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 from sklearn.model_selection import StratifiedKFold
 
 import contrib.catenets.logger as log
@@ -135,7 +135,7 @@ class RNet(BaseCATENet):
         n_iter_print: int = DEFAULT_N_ITER_PRINT,
         seed: int = DEFAULT_SEED,
         nonlin: str = DEFAULT_NONLIN,
-        binary_y: bool = False
+        binary_y: bool = False,
     ) -> None:
         # settings
         self.binary_y = binary_y
@@ -181,8 +181,8 @@ class RNet(BaseCATENet):
     ) -> "RNet":
         # overwrite super so we can pass p as extra param
         # some quick input checks
-        X = check_X_is_np(X)
-        self._check_inputs(w, p)
+        X = check_X_is_np(X)  # type: ignore
+        self._check_inputs(w, p)  # type: ignore
 
         train_func = self._get_train_function()
         train_params = self.get_params()
@@ -191,24 +191,20 @@ class RNet(BaseCATENet):
 
         return self
 
-    def _get_predict_function(self) -> Callable:
+    def _get_predict_function(self) -> Callable:  # type: ignore
         # Two step nets do not need this
         pass
 
-    def predict(
-        self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False
-    ) -> jnp.ndarray:
+    def predict(self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False) -> jnp.ndarray:
         # check input
         if return_po:
-            raise NotImplementedError(
-                "TwoStepNets have no Potential outcome predictors."
-            )
+            raise NotImplementedError("TwoStepNets have no Potential outcome predictors.")
 
         if return_prop:
             raise NotImplementedError("TwoStepNets have no Propensity predictors.")
 
         if isinstance(X, pd.DataFrame):
-            X = X.values
+            X = X.values  # type: ignore
         return self._predict_funs(self._params, X)
 
 
@@ -243,7 +239,7 @@ def train_r_net(
     seed: int = DEFAULT_SEED,
     return_val_loss: bool = False,
     nonlin: str = DEFAULT_NONLIN,
-    binary_y: bool = False
+    binary_y: bool = False,
 ) -> Any:
     # get shape of data
     n, d = X.shape
@@ -271,8 +267,8 @@ def train_r_net(
             X,
             y,
             w,
-            fit_mask,
-            pred_mask,
+            fit_mask,  # type: ignore
+            pred_mask,  # type: ignore
             n_layers_out=n_layers_out,
             n_layers_r=n_layers_r,
             n_units_out=n_units_out,
@@ -288,7 +284,7 @@ def train_r_net(
             n_iter_print=n_iter_print,
             seed=seed,
             nonlin=nonlin,
-            binary_y=binary_y
+            binary_y=binary_y,
         )
         if data_split:
             # keep only prediction data
@@ -316,8 +312,8 @@ def train_r_net(
                 X,
                 y,
                 w,
-                fit_mask,
-                pred_mask,
+                fit_mask,  # type: ignore
+                pred_mask,  # type: ignore
                 n_layers_out=n_layers_out,
                 n_layers_r=n_layers_r,
                 n_units_out=n_units_out,
@@ -333,7 +329,7 @@ def train_r_net(
                 n_iter_print=n_iter_print,
                 seed=seed,
                 nonlin=nonlin,
-                binary_y=binary_y
+                binary_y=binary_y,
             )
 
     log.debug("Training second stage.")
@@ -415,7 +411,7 @@ def _train_and_predict_r_stage1(
     n_iter_print: int = DEFAULT_N_ITER_PRINT,
     seed: int = DEFAULT_SEED,
     nonlin: str = DEFAULT_NONLIN,
-    binary_y: bool = False
+    binary_y: bool = False,
 ) -> Any:
     if len(w.shape) > 1:
         w = w.reshape((len(w),))
@@ -425,7 +421,7 @@ def _train_and_predict_r_stage1(
     X_pred = X[pred_mask, :]
 
     log.debug("Training output Net")
-    params_out, predict_fun_out = train_output_net_only(
+    params_out, predict_fun_out = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
         X_fit,
         y_fit,
         n_layers_out=n_layers_out,
@@ -443,12 +439,12 @@ def _train_and_predict_r_stage1(
         n_iter_print=n_iter_print,
         seed=seed,
         nonlin=nonlin,
-        binary_y=binary_y
+        binary_y=binary_y,
     )
     mu_hat = predict_fun_out(params_out, X_pred)
 
     log.debug("Training propensity net")
-    params_prop, predict_fun_prop = train_output_net_only(
+    params_prop, predict_fun_prop = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
         X_fit,
         w_fit,
         binary_y=True,
@@ -504,7 +500,7 @@ def train_r_stage2(
     onp.random.seed(seed)  # set seed for data generation via numpy as well
 
     # get validation split (can be none)
-    X, y_ortho, w_ortho, X_val, y_val, w_val, val_string = make_val_split(
+    X, y_ortho, w_ortho, X_val, y_val, w_val, val_string = make_val_split(  # pylint: disable=unbalanced-tuple-unpacking
         X, y_ortho, w_ortho, val_split_prop=val_split_prop, seed=seed, stratify_w=False
     )
     n = X.shape[0]  # could be different from before due to split
@@ -524,22 +520,11 @@ def train_r_stage2(
         # mse loss function
         inputs, ortho_targets, ortho_treats = batch
         preds = predict_fun(params, inputs)
-        weightsq = sum(
-            [
-                jnp.sum(params[i][0] ** 2)
-                for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)
-            ]
-        )
+        weightsq = sum([jnp.sum(params[i][0] ** 2) for i in range(0, 2 * (n_layers_out + n_layers_r) + 1, 2)])
         if not avg_objective:
-            return (
-                jnp.sum((ortho_targets - ortho_treats * preds) ** 2)
-                + 0.5 * penalty * weightsq
-            )
+            return jnp.sum((ortho_targets - ortho_treats * preds) ** 2) + 0.5 * penalty * weightsq
         else:
-            return (
-                jnp.average((ortho_targets - ortho_treats * preds) ** 2)
-                + 0.5 * penalty * weightsq
-            )
+            return jnp.average((ortho_targets - ortho_treats * preds) ** 2) + 0.5 * penalty * weightsq
 
     # set optimization routine
     # set optimizer
@@ -548,10 +533,10 @@ def train_r_stage2(
     # set update function
     @jit
     def update(i: int, state: dict, batch: jnp.ndarray, penalty: float) -> jnp.ndarray:
-        params = get_params(state)
+        params = get_params(state)  # type: ignore
         g_params = grad(loss)(params, batch, penalty)
         # g_params = optimizers.clip_grads(g_params, 1.0)
-        return opt_update(i, g_params, state)
+        return opt_update(i, g_params, state)  # type: ignore
 
     # initialise states
     _, init_params = init_fun(rng_key, input_shape)
@@ -570,9 +555,7 @@ def train_r_stage2(
         # shuffle data for minibatches
         onp.random.shuffle(train_indices)
         for b in range(n_batches):
-            idx_next = train_indices[
-                (b * batch_size) : min((b + 1) * batch_size, n - 1)
-            ]
+            idx_next = train_indices[(b * batch_size) : min((b + 1) * batch_size, n - 1)]
             next_batch = X[idx_next, :], y_ortho[idx_next, :], w_ortho[idx_next, :]
             opt_state = update(i * n_batches + b, opt_state, next_batch, penalty_l2)
 
@@ -581,12 +564,12 @@ def train_r_stage2(
             l_curr = loss(params_curr, (X_val, y_val, w_val), penalty_l2)
 
         if i % n_iter_print == 0:
-            log.debug(f"Epoch: {i}, current {val_string} loss: {l_curr}")
+            log.debug(f"Epoch: {i}, current {val_string} loss: {l_curr}")  # type: ignore
 
         if early_stopping and ((i + 1) * n_batches > n_iter_min):
             # check if loss updated
-            if l_curr < l_best:
-                l_best = l_curr
+            if l_curr < l_best:  # type: ignore
+                l_best = l_curr  # type: ignore
                 p_curr = 0
             else:
                 p_curr = p_curr + 1

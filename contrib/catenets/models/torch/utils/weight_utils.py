@@ -28,11 +28,10 @@ def compute_importance_weights(
     w: torch.Tensor,
     weighting_strategy: str,
     weight_args: Optional[dict] = None,
-) -> torch.Tensor:
+) -> torch.Tensor:  # type: ignore
     if weighting_strategy not in ALL_WEIGHTING_STRATEGIES:
         raise ValueError(
-            f"weighting_strategy should be in {ALL_WEIGHTING_STRATEGIES}"
-            f"You passed {weighting_strategy}"
+            f"weighting_strategy should be in {ALL_WEIGHTING_STRATEGIES}" f"You passed {weighting_strategy}"
         )
     if weight_args is None:
         weight_args = {}
@@ -56,9 +55,7 @@ def compute_ipw(propensity: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     return w * p_hat / propensity + (1 - w) * (1 - p_hat) / (1 - propensity)
 
 
-def compute_trunc_ipw(
-    propensity: torch.Tensor, w: torch.Tensor, cutoff: float = 0.05
-) -> torch.Tensor:
+def compute_trunc_ipw(propensity: torch.Tensor, w: torch.Tensor, cutoff: float = 0.05) -> torch.Tensor:
     ipw = compute_ipw(propensity, w)
     return torch.where((propensity > cutoff) & (propensity < 1 - cutoff), ipw, 0)
 

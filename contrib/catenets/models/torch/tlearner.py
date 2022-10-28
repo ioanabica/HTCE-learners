@@ -16,7 +16,10 @@ from contrib.catenets.models.constants import (
     DEFAULT_VAL_SPLIT,
 )
 from contrib.catenets.models.torch.base import DEVICE, BaseCATEEstimator, BasicNet
-from contrib.catenets.models.torch.utils.model_utils import predict_wrapper, train_wrapper
+from contrib.catenets.models.torch.utils.model_utils import (
+    predict_wrapper,
+    train_wrapper,
+)
 
 
 class TLearner(BaseCATEEstimator):
@@ -69,7 +72,7 @@ class TLearner(BaseCATEEstimator):
         seed: int = DEFAULT_SEED,
         nonlin: str = DEFAULT_NONLIN,
         batch_norm: bool = True,
-        early_stopping: bool = True
+        early_stopping: bool = True,
     ) -> None:
         super(TLearner, self).__init__()
 
@@ -96,7 +99,7 @@ class TLearner(BaseCATEEstimator):
                         seed=seed,
                         nonlin=nonlin,
                         batch_norm=batch_norm,
-                        early_stopping=early_stopping
+                        early_stopping=early_stopping,
                     ).to(DEVICE),
                 )
 
@@ -123,7 +126,7 @@ class TLearner(BaseCATEEstimator):
         outcome = y_hat[1] - y_hat[0]
 
         if return_po:
-            return outcome, y_hat[0], y_hat[1]
+            return outcome, y_hat[0], y_hat[1]  # type: ignore
 
         return outcome
 

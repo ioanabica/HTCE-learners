@@ -1,5 +1,5 @@
 """
-Define some constants for initialisation of hyperparamters etc
+Define some constants for initialisation of hyperparameters etc
 """
 import numpy as np
 

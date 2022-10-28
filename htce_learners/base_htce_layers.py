@@ -3,36 +3,37 @@ from typing import Any, Callable, List
 import numpy as np
 import torch
 from torch import nn
+
 import contrib.catenets.logger as log
-from utils import make_target_val_split, check_tensor
-
-
 from htce_learners.constants import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_DIM_P_OUT,
     DEFAULT_DIM_P_R,
     DEFAULT_DIM_S_OUT,
     DEFAULT_DIM_S_R,
-    DEFAULT_LAYERS_R_SHARED,
-    DEFAULT_UNITS_R_SHARED,
     DEFAULT_LAYERS_OUT,
     DEFAULT_LAYERS_R,
+    DEFAULT_LAYERS_R_SHARED,
     DEFAULT_N_ITER,
     DEFAULT_N_ITER_MIN,
     DEFAULT_N_ITER_PRINT,
-    DEFAULT_PATIENCE,
     DEFAULT_NONLIN,
-    DEFAULT_PENALTY_ORTHOGONAL,
+    DEFAULT_PATIENCE,
     DEFAULT_PENALTY_L2,
+    DEFAULT_PENALTY_ORTHOGONAL,
     DEFAULT_SEED,
     DEFAULT_STEP_SIZE,
     DEFAULT_UNITS_R,
+    DEFAULT_UNITS_R_SHARED,
     DEFAULT_VAL_SPLIT,
-    LARGE_VAL
+    LARGE_VAL,
 )
+from utils import check_tensor, make_target_val_split
+
+# pylint: disable=not-callable
 
 EPS = 1e-8
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # type: ignore
 
 NONLIN = {
     "elu": nn.ELU,
@@ -41,6 +42,7 @@ NONLIN = {
     "selu": nn.SELU,
     "sigmoid": nn.Sigmoid,
 }
+
 
 class FlexTESplitLayer(nn.Module):
     """
@@ -65,24 +67,17 @@ class FlexTESplitLayer(nn.Module):
         self.n_units_s = n_units_s
         self.n_units_p = n_units_p
 
-        self.net_shared = nn.Sequential(
-            nn.Linear(n_units_in, n_units_s)
-        ).to(DEVICE)
-        self.net_psource = nn.Sequential(
-            nn.Linear(n_units_in_p, n_units_p)
-        ).to(DEVICE)
-        self.net_ptarget = nn.Sequential(
-            nn.Linear(n_units_in_p, n_units_p)
-        ).to(DEVICE)
+        self.net_shared = nn.Sequential(nn.Linear(n_units_in, n_units_s)).to(DEVICE)
+        self.net_psource = nn.Sequential(nn.Linear(n_units_in_p, n_units_p)).to(DEVICE)
+        self.net_ptarget = nn.Sequential(nn.Linear(n_units_in_p, n_units_p)).to(DEVICE)
 
     def forward(self, tensors: List[torch.Tensor]) -> List:
         if self.first_layer and len(tensors) != 2:
-            raise ValueError(
-                "Invalid number of tensor for the FlexSplitLayer layer. It requires the features vector."
-            )
+            raise ValueError("Invalid number of tensor for the FlexSplitLayer layer. It requires the features vector.")
         if not self.first_layer and len(tensors) != 4:
             raise ValueError(
-                "Invalid number of tensor for the FlexSplitLayer layer. It requires X_s, X_psource, X_ptarget, env as input."
+                "Invalid number of tensor for the FlexSplitLayer layer. "
+                "It requires X_s, X_psource, X_ptarget, env as input."
             )
 
         if self.first_layer:
@@ -109,18 +104,13 @@ class FlexTEOutputLayer(nn.Module):
     """
     Code adapted from: https://github.com/AliciaCurth/CATENets.
     """
+
     def __init__(self, n_units_in: int, n_units_in_p: int, private: bool) -> None:
         super(FlexTEOutputLayer, self).__init__()
         self.private = private
-        self.net_shared = nn.Sequential(nn.Linear(n_units_in, 1)).to(
-            DEVICE
-        )
-        self.net_psource = nn.Sequential(nn.Linear(n_units_in_p, 1)).to(
-            DEVICE
-        )
-        self.net_ptarget = nn.Sequential(nn.Linear(n_units_in_p, 1)).to(
-            DEVICE
-        )
+        self.net_shared = nn.Sequential(nn.Linear(n_units_in, 1)).to(DEVICE)
+        self.net_psource = nn.Sequential(nn.Linear(n_units_in_p, 1)).to(DEVICE)
+        self.net_ptarget = nn.Sequential(nn.Linear(n_units_in_p, 1)).to(DEVICE)
 
     def forward(self, tensors: List[torch.Tensor]) -> torch.Tensor:
         if len(tensors) != 4:
@@ -136,9 +126,9 @@ class FlexTEOutputLayer(nn.Module):
             rep_psource = self.net_psource(torch.cat([X_s, X_psource], dim=1)).squeeze()
             rep_ptarget = self.net_ptarget(torch.cat([X_s, X_ptarget], dim=1)).squeeze()
 
-            if (env == 'source'):
+            if env == "source":
                 return rep_psource
-            elif env == 'target':
+            elif env == "target":
                 return rep_ptarget
             else:
                 raise Exception("Unknown env.")
@@ -148,9 +138,9 @@ class FlexTEOutputLayer(nn.Module):
             rep_ptarget = self.net_ptarget(torch.cat([X_s, X_ptarget], dim=1)).squeeze()
 
             # These could also be concatenated instead of added
-            if (env == 'source'):
+            if env == "source":
                 return rep_psource + rep_s
-            elif env == 'target':
+            elif env == "target":
                 return rep_ptarget + rep_s
             else:
                 raise Exception("Unknown env.")
@@ -211,6 +201,7 @@ class FlexTENetHTCE(nn.Module):
     """
     Code adapted from: https://github.com/AliciaCurth/CATENets.
     """
+
     def __init__(
         self,
         name: str,
@@ -331,57 +322,53 @@ class FlexTENetHTCE(nn.Module):
             )
 
         # append final layer
-        layers.append(
-            FlexTEOutputLayer(
-                n_units_s_out, n_units_s_out + n_units_p_out, private=self.private_out
-            )
-        )
+        layers.append(FlexTEOutputLayer(n_units_s_out, n_units_s_out + n_units_p_out, private=self.private_out))
         if binary_y:
             layers.append(nn.Sigmoid())
 
         self.model = nn.Sequential(*layers).to(DEVICE)
 
     def _ortho_penalty_asymmetric(self) -> torch.Tensor:
-        def _get_cos_reg(
-            params_source: torch.Tensor, params_target: torch.Tensor, normalize: bool
-        ) -> torch.Tensor:
+        def _get_cos_reg(params_source: torch.Tensor, params_target: torch.Tensor, normalize: bool) -> torch.Tensor:
             if normalize:
-                params_source = params_source / torch.linalg.norm(params_source, dim=0)
-                params_target = params_target / torch.linalg.norm(params_target, dim=0)
+                params_source = params_source / torch.linalg.norm(params_source, dim=0)  # type: ignore
+                params_target = params_target / torch.linalg.norm(params_target, dim=0)  # type: ignore
 
             x_min = min(params_source.shape[0], params_target.shape[0])
             y_min = min(params_source.shape[1], params_target.shape[1])
 
-            return (torch.linalg.norm(
-                torch.matmul(torch.transpose(params_source[:x_min, :y_min], 0, 1), params_target[:x_min, :y_min]),
-                "fro") ** 2)
+            return (
+                torch.linalg.norm(  # type: ignore
+                    torch.matmul(torch.transpose(params_source[:x_min, :y_min], 0, 1), params_target[:x_min, :y_min]),
+                    "fro",
+                )
+                ** 2
+            )
 
-        def _apply_reg_split_layer(
-            layer: FlexTESplitLayer, full: bool = True
-        ) -> torch.Tensor:
+        def _apply_reg_split_layer(layer: FlexTESplitLayer, full: bool = True) -> torch.Tensor:
             _ortho_body = 0
             if full:
                 _ortho_body = _get_cos_reg(
-                    layer.net_psource[-1].weight,
-                    layer.net_ptarget[-1].weight,
+                    layer.net_psource[-1].weight,  # type: ignore
+                    layer.net_ptarget[-1].weight,  # type: ignore
                     self.normalize_ortho,
                 )
             _ortho_body += torch.sum(
                 _get_cos_reg(
-                    layer.net_shared[-1].weight,
-                    layer.net_psource[-1].weight,
+                    layer.net_shared[-1].weight,  # type: ignore
+                    layer.net_psource[-1].weight,  # type: ignore
                     self.normalize_ortho,
                 )
                 + _get_cos_reg(
-                    layer.net_shared[-1].weight,
-                    layer.net_ptarget[-1].weight,
+                    layer.net_shared[-1].weight,  # type: ignore
+                    layer.net_ptarget[-1].weight,  # type: ignore
                     self.normalize_ortho,
                 )
             )
             return _ortho_body
 
         ortho_body = 0
-        for layer in self.model:
+        for layer in self.model:  # pylint: disable=not-an-iterable
             if not isinstance(layer, (FlexTESplitLayer, FlexTEOutputLayer)):
                 continue
 
@@ -391,9 +378,9 @@ class FlexTENetHTCE(nn.Module):
             if self.private_out:
                 continue
 
-            ortho_body += _apply_reg_split_layer(layer, full=False)
+            ortho_body += _apply_reg_split_layer(layer, full=False)  # type: ignore
 
-        return self.penalty_orthogonal * ortho_body
+        return self.penalty_orthogonal * ortho_body  # type: ignore
 
     def forward(self, X: torch.Tensor, env: str) -> torch.Tensor:
         X = check_tensor(X).float()
@@ -423,13 +410,12 @@ class FlexTENetHTCE(nn.Module):
         te = mu1 - mu0
 
         if return_po:
-            return te, mu0, mu1
+            return te, mu0, mu1  # type: ignore
 
         return te
 
 
-
-class HTCEBaseEstimator(nn.Module):
+class HTCEBaseEstimator(nn.Module):  # pylint: disable=abstract-method
     def __init__(
         self,
         name: str,
@@ -456,9 +442,13 @@ class HTCEBaseEstimator(nn.Module):
         super(HTCEBaseEstimator, self).__init__()
 
         self._shared_repr_estimator = SharedRepresentationNet(
-            n_unit_in_shared=n_unit_in_shared, n_unit_in_source_specific=n_unit_in_source_specific,
+            n_unit_in_shared=n_unit_in_shared,
+            n_unit_in_source_specific=n_unit_in_source_specific,
             n_unit_in_target_specific=n_unit_in_target_specific,
-            n_layers=n_layers_r_shared, n_units=n_units_r_shared, nonlin=nonlin)
+            n_layers=n_layers_r_shared,
+            n_units=n_units_r_shared,
+            nonlin=nonlin,
+        )
 
         self._estimator = FlexTENetHTCE(
             f"{name}_estimator",
@@ -484,9 +474,8 @@ class HTCEBaseEstimator(nn.Module):
         self.clipping_value = clipping_value
 
     def train(
-        self,
-        X_source_specific, X_source_shared, X_target_specific, X_target_shared,
-        y_source, y_target):
+        self, X_source_specific, X_source_shared, X_target_specific, X_target_shared, y_source, y_target
+    ):  # pylint: disable=arguments-differ
 
         X_source_specific = torch.Tensor(X_source_specific).to(DEVICE)
         X_source_shared = torch.Tensor(X_source_shared).to(DEVICE)
@@ -496,9 +485,21 @@ class HTCEBaseEstimator(nn.Module):
         y_source = torch.Tensor(y_source).squeeze().to(DEVICE)
         y_target = torch.Tensor(y_target).squeeze().to(DEVICE)
 
-        X_target_specific, X_target_shared, y_target, X_target_specific_val, X_target_shared_val, y_target_val, val_string = make_target_val_split(
-            X_target_specific=X_target_specific, X_target_shared=X_target_shared, y=y_target, w=None,
-            val_split_prop=self.val_split_prop, seed=self.seed
+        (  # pylint: disable=unbalanced-tuple-unpacking
+            X_target_specific,
+            X_target_shared,
+            y_target,
+            X_target_specific_val,
+            X_target_shared_val,
+            y_target_val,
+            val_string,
+        ) = make_target_val_split(
+            X_target_specific=X_target_specific,
+            X_target_shared=X_target_shared,
+            y=y_target,
+            w=None,
+            val_split_prop=self.val_split_prop,
+            seed=self.seed,
         )
 
         n_target = X_target_specific.shape[0]  # could be different from before due to split
@@ -512,11 +513,9 @@ class HTCEBaseEstimator(nn.Module):
         n_batches_source = int(np.round(n_source / batch_size)) if batch_size < n_source else 1
         train_indices_source = np.arange(n_source)
 
-        params = (
-            list(self._shared_repr_estimator.parameters())
-            + list(self._estimator.parameters()))
+        params = list(self._shared_repr_estimator.parameters()) + list(self._estimator.parameters())
 
-        optimizer = torch.optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)  # type: ignore
 
         # training
         val_loss_best = LARGE_VAL
@@ -531,12 +530,12 @@ class HTCEBaseEstimator(nn.Module):
 
             for b_target in range(n_batches_target):
                 idx_next_target = train_indices_target[
-                                  (b_target * batch_size): min((b_target + 1) * batch_size, n_target - 1)
-                                  ]
+                    (b_target * batch_size) : min((b_target + 1) * batch_size, n_target - 1)
+                ]
 
                 idx_next_source = train_indices_source[
-                                  (b_source * batch_size): min((b_source + 1) * batch_size, n_source - 1)
-                                  ]
+                    (b_source * batch_size) : min((b_source + 1) * batch_size, n_source - 1)
+                ]
                 b_source = (b_source + 1) % n_batches_source
 
                 X_target_specific_next = X_target_specific[idx_next_target]
@@ -547,16 +546,18 @@ class HTCEBaseEstimator(nn.Module):
                 X_source_shared_next = X_source_shared[idx_next_source]
                 y_source_next = y_source[idx_next_source].squeeze()
 
-                po_preds_source, po_preds_target = self._step(X_source_specific_next, X_source_shared_next,
-                                                              X_target_specific_next, X_target_shared_next)
+                po_preds_source, po_preds_target = self._step(
+                    X_source_specific_next, X_source_shared_next, X_target_specific_next, X_target_shared_next
+                )
 
                 batch_loss_source = self.loss(po_preds_source, y_source_next)
                 batch_loss_target = self.loss(po_preds_target, y_target_next)
 
                 batch_loss = batch_loss_source + batch_loss_target
 
-                ortho_penalty_shared = self._get_ortho_penalty_shared(X_source_specific_next, X_source_shared_next,
-                                                                      X_target_specific_next, X_target_shared_next)
+                ortho_penalty_shared = self._get_ortho_penalty_shared(
+                    X_source_specific_next, X_source_shared_next, X_target_specific_next, X_target_shared_next
+                )
                 batch_loss += ortho_penalty_shared
 
                 ortho_penalty_flex = self._get_ortho_penalty_flex()
@@ -564,7 +565,7 @@ class HTCEBaseEstimator(nn.Module):
 
                 optimizer.zero_grad()
                 batch_loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.clipping_value)  # type: ignore
                 optimizer.step()
 
                 train_loss_source.append(batch_loss_source.detach())
@@ -575,7 +576,7 @@ class HTCEBaseEstimator(nn.Module):
 
             if self.early_stopping or i % self.n_iter_print == 0:
                 with torch.no_grad():
-                    preds = self._forward(X_target_specific_val, X_target_shared_val, env='target')
+                    preds = self._forward(X_target_specific_val, X_target_shared_val, env="target")
                     val_loss = self.loss(preds, y_target_val)
                     if self.early_stopping:
                         if val_loss_best > val_loss:
@@ -608,8 +609,8 @@ class HTCEBaseEstimator(nn.Module):
 
     def _step(self, X_source_specific, X_source_shared, X_target_specific, X_target_shared):
 
-        preds_source = self._forward(X_source_specific, X_source_shared, env='source')
-        preds_target = self._forward(X_target_specific, X_target_shared, env='target')
+        preds_source = self._forward(X_source_specific, X_source_shared, env="source")
+        preds_target = self._forward(X_target_specific, X_target_shared, env="target")
 
         return preds_source, preds_target
 
@@ -619,15 +620,20 @@ class HTCEBaseEstimator(nn.Module):
 
         return preds
 
-    def _get_ortho_penalty_shared(self, X_source_specific, X_source_shared,
-                                  X_target_specific, X_target_shared):
-        return self._shared_repr_estimator._get_loss_diff(X_source_specific, X_source_shared, env='source') + \
-               self._shared_repr_estimator._get_loss_diff(X_target_specific, X_target_shared, env='target')
+    def _get_ortho_penalty_shared(self, X_source_specific, X_source_shared, X_target_specific, X_target_shared):
+        return self._shared_repr_estimator._get_loss_diff(  # pylint: disable=protected-access
+            X_source_specific, X_source_shared, env="source"
+        ) + self._shared_repr_estimator._get_loss_diff(  # pylint: disable=protected-access
+            X_target_specific, X_target_shared, env="target"
+        )
 
     def _get_ortho_penalty_flex(self):
-        return self._estimator._ortho_penalty_asymmetric() + self._estimator._ortho_penalty_asymmetric()
+        return (
+            self._estimator._ortho_penalty_asymmetric()  # pylint: disable=protected-access
+            + self._estimator._ortho_penalty_asymmetric()  # pylint: disable=protected-access
+        )
 
-    def predict(self, X_specific, X_shared, env='target'):
+    def predict(self, X_specific, X_shared, env="target"):
         preds = self._forward(X_specific, X_shared, env)
         return preds
 
@@ -658,10 +664,6 @@ class RepresentationNet(nn.Module):
         return self.model(X)
 
 
-
-
-
-
 class SharedRepresentationNet(nn.Module):
     def __init__(
         self,
@@ -676,55 +678,56 @@ class SharedRepresentationNet(nn.Module):
         if nonlin not in list(NONLIN.keys()):
             raise ValueError("Unknown nonlinearity")
 
-        self.shared_rep_model = RepresentationNet(n_unit_in=n_unit_in_shared, n_units=n_units, n_layers=n_layers,
-                                                  nonlin=nonlin)
-        self.source_specific_rep_model = RepresentationNet(n_unit_in=n_unit_in_source_specific, n_units=n_units,
-                                                           n_layers=n_layers,
-                                                           nonlin=nonlin)
-        self.target_specific_rep_model = RepresentationNet(n_unit_in=n_unit_in_target_specific, n_units=n_units,
-                                                           n_layers=n_layers,
-                                                           nonlin=nonlin)
+        self.shared_rep_model = RepresentationNet(
+            n_unit_in=n_unit_in_shared, n_units=n_units, n_layers=n_layers, nonlin=nonlin
+        )
+        self.source_specific_rep_model = RepresentationNet(
+            n_unit_in=n_unit_in_source_specific, n_units=n_units, n_layers=n_layers, nonlin=nonlin
+        )
+        self.target_specific_rep_model = RepresentationNet(
+            n_unit_in=n_unit_in_target_specific, n_units=n_units, n_layers=n_layers, nonlin=nonlin
+        )
 
     def forward(self, X_specific, X_shared, env) -> torch.Tensor:
         X_specific = self._check_tensor(X_specific)
         X_shared = self._check_tensor(X_shared)
         shared_rep = self.shared_rep_model(X_shared)
 
-        if env == 'source':
+        if env == "source":
             specific_rep = self.source_specific_rep_model(X_specific)
-        elif env == 'target':
+        elif env == "target":
             specific_rep = self.target_specific_rep_model(X_specific)
         else:
             raise Exception("Unknown env.")
 
         return torch.cat([shared_rep, specific_rep], dim=1)
 
-
-
     def _get_loss_diff(self, X_specific, X_shared, env, normalize=True):
         X_specific = self._check_tensor(X_specific)
         X_shared = self._check_tensor(X_shared)
         shared_rep = self.shared_rep_model(X_shared)
 
-        if env == 'source':
+        if env == "source":
             specific_rep = self.source_specific_rep_model(X_specific)
-        elif env == 'target':
+        elif env == "target":
             specific_rep = self.target_specific_rep_model(X_specific)
         else:
             raise Exception("Unknown env.")
 
         if normalize:
-            specific_rep = specific_rep / torch.linalg.norm(specific_rep)
-            shared_rep = shared_rep / torch.linalg.norm(shared_rep)
+            specific_rep = specific_rep / torch.linalg.norm(specific_rep)  # type: ignore
+            shared_rep = shared_rep / torch.linalg.norm(shared_rep)  # type: ignore
 
         loss_scale = 0.01
 
-        return loss_scale * torch.linalg.norm(torch.matmul(torch.transpose(specific_rep, 0, 1), shared_rep), "fro") ** 2
-
+        return (
+            loss_scale
+            * torch.linalg.norm(torch.matmul(torch.transpose(specific_rep, 0, 1), shared_rep), "fro")  # type: ignore
+            ** 2
+        )
 
     def _check_tensor(self, X: torch.Tensor) -> torch.Tensor:
         if isinstance(X, torch.Tensor):
             return X.float().to(DEVICE)
         else:
             return torch.from_numpy(np.asarray(X)).float().to(DEVICE)
-

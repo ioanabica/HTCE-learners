@@ -59,9 +59,7 @@ def eval_abs_error_ate(cate_pred: jnp.ndarray, cate_true: jnp.ndarray) -> jnp.nd
     return jnp.abs(jnp.mean(cate_pred) - jnp.mean(cate_true))
 
 
-def get_model_set(
-    model_selection: Union[str, list] = "all", model_params: Optional[dict] = None
-) -> Dict:
+def get_model_set(model_selection: Union[str, list] = "all", model_params: Optional[dict] = None) -> Dict:
     """Helper function to retrieve a set of models"""
     # get model selection
     if type(model_selection) is str:
@@ -86,11 +84,7 @@ def get_model_set(
     if model_params is not None:
         for model in models.values():
             existing_params = model.get_params()
-            new_params = {
-                key: val
-                for key, val in model_params.items()
-                if key in existing_params.keys()
-            }
+            new_params = {key: val for key, val in model_params.items() if key in existing_params.keys()}
             model.set_params(**new_params)
 
     return models
@@ -111,9 +105,7 @@ def get_all_snets() -> Dict:
 def get_all_pseudoout_models() -> Dict:  # DR, RA, PW learner
     model_dict = {}
     for trans in ALL_PSEUDOOUT_MODELS:
-        model_dict.update(
-            {PSEUDOOUT_NAME + SEP + trans: PseudoOutcomeNet(transformation=trans)}
-        )
+        model_dict.update({PSEUDOOUT_NAME + SEP + trans: PseudoOutcomeNet(transformation=trans)})
     return model_dict
 
 

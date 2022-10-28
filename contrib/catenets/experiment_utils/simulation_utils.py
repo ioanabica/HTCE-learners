@@ -101,19 +101,9 @@ def simulate_treatment_setup(
     np.random.seed(seed)
 
     # generate data and outcomes
-    X = covariate_model(
-        n=n,
-        n_nuisance=n_nuisance,
-        n_c=n_c,
-        n_o=n_o,
-        n_w=n_w,
-        n_t=n_t,
-        **covariate_model_params
-    )
+    X = covariate_model(n=n, n_nuisance=n_nuisance, n_c=n_c, n_o=n_o, n_w=n_w, n_t=n_t, **covariate_model_params)
     mu_0 = mu_0_model(X, n_c=n_c, n_o=n_o, n_w=n_w, **mu_0_model_params)
-    mu_1 = mu_1_model(
-        X, n_c=n_c, n_o=n_o, n_w=n_w, n_t=n_t, mu_0=mu_0, **mu_1_model_params
-    )
+    mu_1 = mu_1_model(X, n_c=n_c, n_o=n_o, n_w=n_w, n_t=n_t, mu_0=mu_0, **mu_1_model_params)
     t = mu_1 - mu_0
 
     # generate treatments
@@ -123,21 +113,17 @@ def simulate_treatment_setup(
     # generate observables
     y = w * mu_1 + (1 - w) * mu_0 + np.random.normal(0, error_sd, n)
 
-    return X, y, w, p, t
+    return X, y, w, p, t  # type: ignore
 
 
 # normal covariate model (Adapted from Hassanpour & Greiner, 2020) -------------
-def get_multivariate_normal_params(
-    m: int, correlated: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+def get_multivariate_normal_params(m: int, correlated: bool = False) -> Tuple[np.ndarray, np.ndarray]:
     # Adapted from Hassanpour & Greiner (2020)
     if correlated:
         mu = np.zeros(m)  # np.random.normal(size=m)/10
         temp = np.random.uniform(size=(m, m))
         temp = 0.5 * (np.transpose(temp) + temp)
-        sig = (np.ones((m, m)) - np.eye(m)) * temp / 10 + 0.5 * np.eye(
-            m
-        )  # (temp + m * np.eye(m)) / 10
+        sig = (np.ones((m, m)) - np.eye(m)) * temp / 10 + 0.5 * np.eye(m)  # (temp + m * np.eye(m)) / 10
 
     else:
         mu = np.zeros(m)
@@ -148,7 +134,7 @@ def get_multivariate_normal_params(
 
 def get_set_normal_covariates(m: int, n: int, correlated: bool = False) -> np.ndarray:
     if m == 0:
-        return
+        return  # type: ignore
     mu, sig = get_multivariate_normal_params(m, correlated=correlated)
     return np.random.multivariate_normal(mean=mu, cov=sig, size=n)
 
@@ -207,15 +193,11 @@ def propensity_AISTATS(
             raise ValueError("Not a valid value for offset")
 
 
-def propensity_constant(
-    X: np.ndarray, n_c: int = 0, n_w: int = 0, xi: float = 0.5
-) -> np.ndarray:
+def propensity_constant(X: np.ndarray, n_c: int = 0, n_w: int = 0, xi: float = 0.5) -> np.ndarray:
     return xi * np.ones(X.shape[0])
 
 
-def mu0_AISTATS(
-    X: np.ndarray, n_w: int = 0, n_c: int = 0, n_o: int = 0, scale: bool = False
-) -> np.ndarray:
+def mu0_AISTATS(X: np.ndarray, n_w: int = 0, n_c: int = 0, n_o: int = 0, scale: bool = False) -> np.ndarray:
     if n_c + n_o == 0:
         return np.zeros((X.shape[0]))
     else:
@@ -238,7 +220,7 @@ def mu1_AISTATS(
     scale: bool = False,
 ) -> np.ndarray:
     if n_t == 0:
-        return mu_0
+        return mu_0  # type: ignore
     # use additive effect
     else:
         if scale:
@@ -247,9 +229,9 @@ def mu1_AISTATS(
             coefs = np.ones(n_t)
         X_sel = X[:, (n_w + n_c + n_o) : (n_w + n_c + n_o + n_t)]
     if withbase:
-        return mu_0 + np.dot(X_sel ** nonlinear, coefs)
+        return mu_0 + np.dot(X_sel**nonlinear, coefs)
     else:
-        return np.dot(X_sel ** nonlinear, coefs)
+        return np.dot(X_sel**nonlinear, coefs)
 
 
 # Other simulation settings not used in AISTATS paper
@@ -277,7 +259,7 @@ def mu1_additive(
     mu_0: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     if n_t == 0:
-        return mu_0
+        return mu_0  # type: ignore
     else:
         coefs = np.random.normal(size=n_t)
         return np.dot(X[:, (n_w + n_c + n_o) : (n_w + n_c + n_o + n_t)], coefs) / n_t
@@ -307,9 +289,7 @@ def mu1_hg(
         return np.dot(X[:, n_w : (n_w + n_c + n_o)] ** 2, coefs) / (n_c + n_o)
 
 
-def propensity_hg(
-    X: np.ndarray, n_c: int = 0, n_w: int = 0, xi: Optional[float] = None
-) -> np.ndarray:
+def propensity_hg(X: np.ndarray, n_c: int = 0, n_w: int = 0, xi: Optional[float] = None) -> np.ndarray:
     # propensity set-up used in Hassanpour & Greiner (2020)
     if n_c + n_w == 0:
         return 0.5 * np.ones(X.shape[0])

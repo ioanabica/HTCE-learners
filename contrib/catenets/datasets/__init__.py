@@ -9,7 +9,7 @@ DATA_PATH = Path(os.path.dirname(__file__)) / Path("data")
 
 try:
     os.mkdir(DATA_PATH)
-except BaseException:
+except BaseException:  # pylint: disable=broad-except
     pass
 
 

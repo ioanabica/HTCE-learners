@@ -219,8 +219,8 @@ class PseudoOutcomeNet(BaseCATENet):
     ) -> "PseudoOutcomeNet":
         # overwrite super so we can pass p as extra param
         # some quick input checks
-        X = check_X_is_np(X)
-        self._check_inputs(w, p)
+        X = check_X_is_np(X)  # type: ignore
+        self._check_inputs(w, p)  # type: ignore
 
         train_func = self._get_train_function()
         train_params = self.get_params()
@@ -229,32 +229,26 @@ class PseudoOutcomeNet(BaseCATENet):
             train_params.update({"transformation": self.transformation})
 
         if self.rescale_transformation:
-            self._params, self._predict_funs, self._scale_factor = train_func(
-                X, y, w, p, **train_params
-            )
+            self._params, self._predict_funs, self._scale_factor = train_func(X, y, w, p, **train_params)
         else:
             self._params, self._predict_funs = train_func(X, y, w, p, **train_params)
 
         return self
 
-    def _get_predict_function(self) -> Callable:
+    def _get_predict_function(self) -> Callable:  # type: ignore
         # Two step nets do not need this
         pass
 
-    def predict(
-        self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False
-    ) -> jnp.ndarray:
+    def predict(self, X: jnp.ndarray, return_po: bool = False, return_prop: bool = False) -> jnp.ndarray:
         # check input
         if return_po:
-            raise NotImplementedError(
-                "TwoStepNets have no Potential outcome predictors."
-            )
+            raise NotImplementedError("TwoStepNets have no Potential outcome predictors.")
 
         if return_prop:
             raise NotImplementedError("TwoStepNets have no Propensity predictors.")
 
         if isinstance(X, pd.DataFrame):
-            X = X.values
+            X = X.values  # type: ignore
 
         if self.rescale_transformation:
             return 1 / self._scale_factor * self._predict_funs(self._params, X)
@@ -538,8 +532,8 @@ def train_pseudooutcome_net(
                 X,
                 y,
                 w,
-                fit_mask,
-                pred_mask,
+                fit_mask,  # type: ignore
+                pred_mask,  # type: ignore
                 first_stage_strategy=first_stage_strategy,
                 binary_y=binary_y,
                 n_layers_out=n_layers_out,
@@ -572,9 +566,7 @@ def train_pseudooutcome_net(
             log.debug(f"Training first stage in {n_cf_folds} folds (cross-fitting)")
             # do cross fitting
             mu_0, mu_1, pi_hat = onp.zeros((n, 1)), onp.zeros((n, 1)), onp.zeros((n, 1))
-            splitter = StratifiedKFold(
-                n_splits=n_cf_folds, shuffle=True, random_state=seed
-            )
+            splitter = StratifiedKFold(n_splits=n_cf_folds, shuffle=True, random_state=seed)
 
             fold_count = 1
             for train_idx, test_idx in splitter.split(X, w):
@@ -586,16 +578,12 @@ def train_pseudooutcome_net(
                 pred_mask[test_idx] = 1
                 fit_mask = ~pred_mask
 
-                (
-                    mu_0[pred_mask],
-                    mu_1[pred_mask],
-                    pi_hat[pred_mask],
-                ) = _train_and_predict_first_stage(
+                (mu_0[pred_mask], mu_1[pred_mask], pi_hat[pred_mask],) = _train_and_predict_first_stage(
                     X,
                     y,
                     w,
-                    fit_mask,
-                    pred_mask,
+                    fit_mask,  # type: ignore
+                    pred_mask,  # type: ignore
                     first_stage_strategy=first_stage_strategy,
                     binary_y=binary_y,
                     n_layers_out=n_layers_out,
@@ -632,14 +620,14 @@ def train_pseudooutcome_net(
         mu_0 = None
         mu_1 = None
 
-    pseudo_outcome = transformation_function(y=y, w=w, p=pi_hat, mu_0=mu_0, mu_1=mu_1)
+    pseudo_outcome = transformation_function(y=y, w=w, p=pi_hat, mu_0=mu_0, mu_1=mu_1)  # type: ignore
     if rescale_transformation:
         scale_factor = onp.std(y) / onp.std(pseudo_outcome)
         if scale_factor > 1:
             scale_factor = 1
         else:
             pseudo_outcome = scale_factor * pseudo_outcome
-        params, predict_funs = train_output_net_only(
+        params, predict_funs = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
             X,
             pseudo_outcome,
             binary_y=False,
@@ -742,11 +730,7 @@ def _train_and_predict_first_stage(
     elif first_stage_strategy == FLEX_STRATEGY:
         train_fun, predict_fun = train_flextenet, predict_flextenet
     else:
-        raise ValueError(
-            "{} is not a valid first stage strategy for a PseudoOutcomeNet".format(
-                first_stage_strategy
-            )
-        )
+        raise ValueError("{} is not a valid first stage strategy for a PseudoOutcomeNet".format(first_stage_strategy))
 
     log.debug("Training PO estimators")
     trained_params, pred_fun = train_fun(
@@ -774,20 +758,16 @@ def _train_and_predict_first_stage(
     )
 
     if first_stage_strategy in [S_STRATEGY, S2_STRATEGY, S3_STRATEGY]:
-        _, mu_0, mu_1, pi_hat = predict_fun(
-            X_pred, trained_params, pred_fun, return_po=True, return_prop=True
-        )
+        _, mu_0, mu_1, pi_hat = predict_fun(X_pred, trained_params, pred_fun, return_po=True, return_prop=True)
     else:
         if transformation is not PW_TRANSFORMATION:
-            _, mu_0, mu_1 = predict_fun(
-                X_pred, trained_params, pred_fun, return_po=True
-            )
+            _, mu_0, mu_1 = predict_fun(X_pred, trained_params, pred_fun, return_po=True)
         else:
             mu_0, mu_1 = onp.nan, onp.nan
 
         if transformation is not RA_TRANSFORMATION:
             log.debug("Training propensity net")
-            params_prop, predict_fun_prop = train_output_net_only(
+            params_prop, predict_fun_prop = train_output_net_only(  # pylint: disable=unbalanced-tuple-unpacking
                 X_fit,
                 w_fit,
                 binary_y=True,

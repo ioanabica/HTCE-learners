@@ -84,7 +84,7 @@ class SLearner(BaseCATEEstimator):
         nonlin: str = DEFAULT_NONLIN,
         weighting_strategy: Optional[str] = None,
         batch_norm: bool = True,
-        early_stopping: bool = True
+        early_stopping: bool = True,
     ) -> None:
         super(SLearner, self).__init__()
 
@@ -107,7 +107,7 @@ class SLearner(BaseCATEEstimator):
                 seed=seed,
                 nonlin=nonlin,
                 batch_norm=batch_norm,
-                early_stopping=early_stopping
+                early_stopping=early_stopping,
             ).to(DEVICE)
         if weighting_strategy is not None:
             self._propensity_estimator = PropensityNet(
@@ -126,7 +126,7 @@ class SLearner(BaseCATEEstimator):
                 nonlin=nonlin,
                 val_split_prop=val_split_prop,
                 batch_norm=batch_norm,
-                early_stopping=early_stopping
+                early_stopping=early_stopping,
             ).to(DEVICE)
 
     def train(
@@ -155,14 +155,12 @@ class SLearner(BaseCATEEstimator):
         # add indicator as additional variable
         X_ext = torch.cat((X, w.reshape((-1, 1))), dim=1).to(DEVICE)
 
-        if not (
-            hasattr(self._po_estimator, "train") or hasattr(self._po_estimator, "fit")
-        ):
+        if not (hasattr(self._po_estimator, "train") or hasattr(self._po_estimator, "fit")):
             raise NotImplementedError("invalid po_estimator for the slearner")
 
         if hasattr(self._po_estimator, "fit"):
             log.info("Fit the sklearn po_estimator")
-            self._po_estimator.fit(X_ext.detach().numpy(), y.detach().numpy())
+            self._po_estimator.fit(X_ext.detach().numpy(), y.detach().numpy())  # type: ignore
             return self
 
         if self._weighting_strategy is None:
@@ -189,7 +187,7 @@ class SLearner(BaseCATEEstimator):
         X_ext_0 = torch.cat((X, w_0), dim=1).to(DEVICE)
         X_ext_1 = torch.cat((X, w_1), dim=1).to(DEVICE)
 
-        return [X_ext_0, X_ext_1]
+        return [X_ext_0, X_ext_1]  # type: ignore
 
     def predict(self, X: torch.Tensor, return_po: bool = False) -> torch.Tensor:
         """
@@ -213,6 +211,6 @@ class SLearner(BaseCATEEstimator):
         outcome = y[1] - y[0]
 
         if return_po:
-            return outcome, y[0], y[1]
+            return outcome, y[0], y[1]  # type: ignore
 
         return outcome
